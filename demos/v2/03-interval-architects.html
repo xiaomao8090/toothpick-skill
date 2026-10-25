@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>间筑建筑事务所</title>
+<meta name="description" content="间筑是一家位于上海的建筑事务所，做城市旧区里的小尺度公共建筑：图书馆、菜市场、社区中心。">
+<!--
+【方案】
+产品与用户：小型建筑事务所的作品集网站；访客是街道、文化机构等潜在委托方，以及求职的建筑师，多用电脑浏览
+主角：项目本身。没有照片时，图纸就是建筑师最真实的作品，用浅底面板把平面图当作品图展示
+颜色：背景 #FFFFFF / 面板 #F4F4F2 / 文字 #161616 / 次要 #6F6F6F / 细环 rgba(0,0,0,.07)
+      图纸里的"新增部分"用一种蓝 #3A64D8 标出，这是图纸自身的信息，不作为界面装饰色
+字体：Hanken Grotesk + 思源黑体，一套无衬线，标题字重 500
+布局：首屏是一句克制的介绍加一张最新项目的大图纸；项目做成两列作品网格，可按类型筛选；事务所介绍和联系方式保持安静
+自检后改掉的：去掉了上一版的黑色通栏细线、零圆角、超大编号、红色小方块、12 栏强行错位
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FFFFFF; --panel: #F4F4F2; --text: #161616; --text-2: #6F6F6F;
+    --ring: 0 0 0 1px rgba(0,0,0,.07); --line: rgba(0,0,0,.08);
+    --ink: #2B2B2B; --ink-2: #9A9A96; --new: #3A64D8;
+    --wght: 400;
+    --font: "Hanken Grotesk", "Noto Sans SC", -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121212; --panel: #1B1B1B; --text: #EDEDED; --text-2: #A0A0A0;
+      --ring: 0 0 0 1px rgba(255,255,255,.08); --line: rgba(255,255,255,.09);
+      --ink: #D8D8D8; --ink-2: #6A6A6A; --new: #86A3F5; --wght: 360;
+    }
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-weight: var(--wght); font-size: 16px; line-height: 1.7; }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--text); outline-offset: 3px; border-radius: 6px; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 32px; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  header .wrap { height: 72px; display: flex; align-items: center; justify-content: space-between; }
+  .brand { font-weight: 600; font-size: 17px; text-decoration: none; }
+  .brand span { font-weight: 400; color: var(--text-2); margin-left: 10px; }
+  header nav { display: flex; gap: 4px; font-size: 15px; }
+  header nav a { text-decoration: none; color: var(--text-2); padding: 8px 12px; border-radius: 8px; }
+  header nav a:hover { color: var(--text); background: var(--panel); }
+
+  /* 首屏 */
+  .intro { padding: 64px 0 48px; max-width: 760px; }
+  .intro h1 { font-size: clamp(30px, 3.6vw, 44px); line-height: 1.3; font-weight: 500; letter-spacing: -0.015em; margin: 0 0 20px; text-wrap: balance; }
+  .intro p { margin: 0; color: var(--text-2); font-size: 18px; }
+
+  .feature { margin-bottom: 120px; }
+  .feature .plate { background: var(--panel); border-radius: 16px; padding: 56px; color: var(--ink); }
+  .feature .plate svg { display: block; width: 100%; height: auto; }
+  .cap { display: flex; justify-content: space-between; align-items: baseline; gap: 24px; margin-top: 16px; flex-wrap: wrap; }
+  .cap h2 { font-size: 20px; font-weight: 500; margin: 0; }
+  .cap p { margin: 0; color: var(--text-2); font-size: 15px; }
+  .cap a { color: var(--text); font-size: 15px; text-underline-offset: 4px; }
+
+  /* 图纸样式 */
+  .plan .wall { fill: none; stroke: currentColor; stroke-width: 2.5; }
+  .plan .thin { fill: none; stroke: currentColor; stroke-width: 1; }
+  .plan .light { fill: none; stroke: var(--ink-2); stroke-width: .8; }
+  .plan .col { fill: currentColor; }
+  .plan .new { fill: none; stroke: var(--new); stroke-width: 1.5; }
+  .plan .newfill { fill: var(--new); opacity: .1; }
+  .plan text { font-family: var(--font); fill: var(--text-2); }
+
+  /* 项目 */
+  section { padding-bottom: 120px; }
+  .sec-head { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 32px; flex-wrap: wrap; }
+  .sec-head h2 { font-size: 32px; font-weight: 500; letter-spacing: -0.01em; margin: 0; line-height: 1.25; }
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; }
+  .filters button { height: 36px; padding: 0 14px; border-radius: 999px; border: 0; background: transparent; box-shadow: var(--ring); color: var(--text-2); font: 14px var(--font); cursor: pointer; transition: background-color .12s, color .12s; }
+  .filters button:hover { color: var(--text); background: var(--panel); }
+  .filters button[aria-pressed="true"] { background: var(--text); color: var(--bg); box-shadow: none; }
+
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 48px 32px; list-style: none; margin: 0; padding: 0; }
+  .proj a { display: block; text-decoration: none; }
+  .proj .thumb { background: var(--panel); border-radius: 12px; aspect-ratio: 4 / 3; display: flex; align-items: center; justify-content: center; padding: 12%; color: var(--ink); transition: background-color .15s ease-out; }
+  .proj .thumb svg { width: 100%; height: 100%; }
+  .proj a:hover .thumb { background: color-mix(in srgb, var(--panel) 85%, var(--text) 6%); }
+  .proj h3 { font-size: 18px; font-weight: 500; margin: 14px 0 2px; }
+  .proj p { margin: 0; color: var(--text-2); font-size: 15px; }
+  .proj[hidden] { display: none; }
+  .empty { color: var(--text-2); padding: 40px 0; }
+
+  /* 事务所 */
+  .about { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; }
+  .about h2 { font-size: 32px; font-weight: 500; letter-spacing: -0.01em; margin: 0 0 20px; line-height: 1.25; }
+  .about p { margin: 0 0 16px; }
+  .about .muted { color: var(--text-2); }
+  .facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 32px 0 0; }
+  .facts div { background: var(--panel); border-radius: 12px; padding: 16px 18px; }
+  .facts dt { font-size: 14px; color: var(--text-2); }
+  .facts dd { margin: 2px 0 0; font-size: 22px; font-weight: 500; }
+  .people { list-style: none; margin: 0; padding: 0; }
+  .people li { display: flex; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .people li:first-child { padding-top: 0; }
+  .people span { color: var(--text-2); }
+  .hiring { margin-top: 24px; font-size: 15px; color: var(--text-2); }
+  .hiring a { color: var(--text); text-underline-offset: 4px; }
+
+  /* 联系 */
+  .contact { background: var(--panel); border-radius: 16px; padding: 48px; display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 32px; }
+  .contact h2 { font-size: 28px; font-weight: 500; margin: 0 0 8px; line-height: 1.3; }
+  .contact p { margin: 0; color: var(--text-2); font-size: 15px; }
+  .contact dt { font-size: 14px; color: var(--text-2); margin-bottom: 4px; }
+  .contact dd { margin: 0 0 16px; }
+  .contact a { text-underline-offset: 4px; }
+
+  footer { padding: 0 0 48px; color: var(--text-2); font-size: 14px; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+  @media (max-width: 860px) {
+    .wrap { padding: 0 20px; }
+    .brand span { display: none; }
+    .intro { padding: 32px 0 32px; }
+    .feature { margin-bottom: 72px; }
+    .feature .plate { padding: 20px; border-radius: 12px; }
+    .plan text { display: none; }
+    .grid { grid-template-columns: 1fr; gap: 32px; }
+    .about { grid-template-columns: 1fr; gap: 40px; }
+    .contact { grid-template-columns: 1fr; padding: 28px; gap: 8px; }
+    section { padding-bottom: 72px; }
+  }
+  @media (max-width: 420px) { .wrap { padding: 0 16px; } .facts { grid-template-columns: 1fr 1fr; } .facts div:last-child { grid-column: 1 / -1; } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <a class="brand" href="#">间筑<span>Interval Architects</span></a>
+    <nav aria-label="主导航">
+      <a href="#projects">项目</a>
+      <a href="#about">事务所</a>
+      <a href="#contact">联系</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <div class="intro">
+      <h1>我们在城市旧区里做小尺度的公共建筑：图书馆、菜市场、社区中心。</h1>
+      <p>上海，2014 年成立。每个项目都由合伙人从调研一直跟到竣工。</p>
+    </div>
+
+    <figure class="feature" style="margin:0 0 120px">
+      <div class="plate">
+        <svg class="plan" viewBox="0 0 1200 440" role="img" aria-label="平江路菜市场改造首层平面图，蓝色为新增天窗">
+          <rect class="wall" x="20" y="30" width="1160" height="380" rx="2"/>
+          <g class="col">
+            <rect x="166" y="106" width="8" height="8"/><rect x="326" y="106" width="8" height="8"/><rect x="486" y="106" width="8" height="8"/><rect x="646" y="106" width="8" height="8"/><rect x="806" y="106" width="8" height="8"/><rect x="966" y="106" width="8" height="8"/>
+            <rect x="166" y="326" width="8" height="8"/><rect x="326" y="326" width="8" height="8"/><rect x="486" y="326" width="8" height="8"/><rect x="646" y="326" width="8" height="8"/><rect x="806" y="326" width="8" height="8"/><rect x="966" y="326" width="8" height="8"/>
+          </g>
+          <g class="thin">
+            <rect x="60" y="140" width="1080" height="40"/><rect x="60" y="260" width="1080" height="40"/>
+            <rect x="60" y="50" width="200" height="40"/><rect x="940" y="350" width="200" height="40"/>
+          </g>
+          <g class="light">
+            <path d="M150 140v40M240 140v40M330 140v40M420 140v40M510 140v40M600 140v40M690 140v40M780 140v40M870 140v40M960 140v40M1050 140v40"/>
+            <path d="M150 260v40M240 260v40M330 260v40M420 260v40M510 260v40M600 260v40M690 260v40M780 260v40M870 260v40M960 260v40M1050 260v40"/>
+          </g>
+          <g><rect class="newfill" x="200" y="196" width="100" height="48"/><rect class="newfill" x="360" y="196" width="100" height="48"/><rect class="newfill" x="520" y="196" width="100" height="48"/><rect class="newfill" x="680" y="196" width="100" height="48"/><rect class="newfill" x="840" y="196" width="100" height="48"/><rect class="newfill" x="1000" y="196" width="100" height="48"/></g>
+          <g class="new"><rect x="200" y="196" width="100" height="48"/><rect x="360" y="196" width="100" height="48"/><rect x="520" y="196" width="100" height="48"/><rect x="680" y="196" width="100" height="48"/><rect x="840" y="196" width="100" height="48"/><rect x="1000" y="196" width="100" height="48"/></g>
+          <g style="stroke:var(--panel);stroke-width:8"><line x1="20" y1="200" x2="20" y2="240"/><line x1="1180" y1="200" x2="1180" y2="240"/></g>
+          <text x="72" y="75" font-size="13">熟食、豆制品</text><text x="952" y="375" font-size="13">鱼、禽</text>
+          <text x="72" y="166" font-size="13">蔬果</text><text x="72" y="286" font-size="13">肉、干货</text>
+          <text x="30" y="226" font-size="13">西入口</text><text x="1120" y="226" font-size="13">东入口</text>
+        </svg>
+      </div>
+      <figcaption class="cap">
+        <div><h2>平江路菜市场改造</h2><p>苏州，2025 年建成，3,420 m²。在不停业的前提下分三期改造，蓝色为新增的六条天窗。</p></div>
+        <a href="#">查看项目</a>
+      </figcaption>
+    </figure>
+  </div>
+
+  <section id="projects">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2>项目</h2>
+        <div class="filters" role="group" aria-label="按类型筛选">
+          <button type="button" data-f="all" aria-pressed="true">全部</button>
+          <button type="button" data-f="文化" aria-pressed="false">文化</button>
+          <button type="button" data-f="社区" aria-pressed="false">社区</button>
+          <button type="button" data-f="教育" aria-pressed="false">教育</button>
+          <button type="button" data-f="商业" aria-pressed="false">商业</button>
+        </div>
+      </div>
+      <ul class="grid" id="grid">
+        <li class="proj" data-t="文化"><a href="#">
+          <div class="thumb"><svg class="plan" viewBox="0 0 200 150"><rect class="wall" x="10" y="10" width="180" height="130"/><rect class="wall" x="75" y="45" width="50" height="60"/><path class="light" d="M75 60h50M75 75h50M75 90h50"/><path class="thin" d="M22 26h36M22 36h36M22 46h36M142 26h36M142 36h36M142 46h36M22 104h36M22 114h36M22 124h36"/><rect class="newfill" x="142" y="100" width="36" height="30"/><rect class="new" x="142" y="100" width="36" height="30"/></svg></div>
+          <h3>愚园路社区图书馆</h3><p>上海，在建，预计 2026 年底开放，1,860 m²</p></a></li>
+        <li class="proj" data-t="社区"><a href="#">
+          <div class="thumb"><svg class="plan" viewBox="0 0 200 150"><path class="wall" d="M10 10H190V70H100V140H10Z"/><path class="thin" d="M10 50H100M55 10V50M150 10V70M10 105H100"/><path class="light" d="M106 80h78M106 92h78M106 104h78M106 116h78M106 128h78"/><rect class="newfill" x="20" y="58" width="72" height="40"/><rect class="new" x="20" y="58" width="72" height="40"/></svg></div>
+          <h3>月湖街道邻里中心</h3><p>宁波，2024 年，2,150 m²</p></a></li>
+        <li class="proj" data-t="教育"><a href="#">
+          <div class="thumb"><svg class="plan" viewBox="0 0 200 150"><rect class="wall" x="10" y="15" width="180" height="120"/><rect class="thin" x="22" y="27" width="44" height="96"/><path class="thin" d="M22 46h44M22 65h44M22 84h44M22 103h44"/><path class="light" d="M84 34h92M84 52h92M84 70h92M84 88h92M84 106h92M84 124h92"/><path class="new" d="M76 22V128"/></svg></div>
+          <h3>南翔小学食堂</h3><p>上海，2023 年，960 m²</p></a></li>
+        <li class="proj" data-t="商业"><a href="#">
+          <div class="thumb"><svg class="plan" viewBox="0 0 200 150"><rect class="light" x="20" y="10" width="160" height="130"/><rect class="wall" x="55" y="30" width="90" height="80"/><path class="thin" d="M75 50h50v40H75zM100 50v40"/><circle class="light" cx="38" cy="28" r="8"/><circle class="light" cx="162" cy="30" r="10"/><circle class="light" cx="36" cy="122" r="9"/><rect class="newfill" x="68" y="112" width="64" height="20"/><rect class="new" x="68" y="112" width="64" height="20"/></svg></div>
+          <h3>山塘弄堂茶室</h3><p>苏州，2023 年，180 m²</p></a></li>
+        <li class="proj" data-t="社区"><a href="#">
+          <div class="thumb"><svg class="plan" viewBox="0 0 200 150"><rect class="wall" x="12" y="50" width="52" height="50"/><rect class="wall" x="74" y="50" width="52" height="50"/><rect class="wall" x="136" y="50" width="52" height="50"/><path class="light" d="M0 120H200M0 128H200"/><rect class="newfill" x="12" y="40" width="176" height="10"/><rect class="new" x="12" y="40" width="176" height="10"/></svg></div>
+          <h3>杨浦滨江驿站（三处）</h3><p>上海，2022 年，共 1,240 m²</p></a></li>
+        <li class="proj" data-t="教育"><a href="#">
+          <div class="thumb"><svg class="plan" viewBox="0 0 200 150"><rect class="wall" x="10" y="20" width="110" height="110"/><path class="thin" d="M10 60h110M10 95h110M60 20v40"/><rect class="newfill" x="120" y="40" width="70" height="90"/><rect class="new" x="120" y="40" width="70" height="90"/><path class="light" d="M130 55h50M130 70h50M130 85h50"/></svg></div>
+          <h3>嘉定老城区少年宫加建</h3><p>上海，2021 年，2,600 m²，蓝色为加建部分</p></a></li>
+      </ul>
+      <p class="empty" id="empty" hidden>这个类型暂时没有可以展示的项目。</p>
+    </div>
+  </section>
+
+  <section id="about">
+    <div class="wrap about">
+      <div>
+        <h2>事务所</h2>
+        <p>我们只接 3,000 m² 以下的项目，这样每个项目都能由合伙人亲自跟到竣工。</p>
+        <p class="muted">大部分项目来自街道、教育局和文化机构的委托，也有一部分来自公开竞赛。每个项目开始前，我们会在场地里待一周，记录谁在什么时候经过、在哪里停下。</p>
+        <dl class="facts num">
+          <div><dt>成立</dt><dd>2014</dd></div>
+          <div><dt>团队</dt><dd>14 人</dd></div>
+          <div><dt>建成项目</dt><dd>23 个</dd></div>
+        </dl>
+      </div>
+      <div>
+        <ul class="people">
+          <li>周岚<span>主持建筑师，合伙人</span></li>
+          <li>陈以舟<span>合伙人，技术总监</span></li>
+          <li>沈一苇<span>项目建筑师</span></li>
+          <li>许棠<span>项目建筑师</span></li>
+        </ul>
+        <p class="hiring">正在招聘项目建筑师 1 名、实习生 2 名。作品集请发到 <a href="mailto:jobs@interval.example">jobs@interval.example</a>，PDF 不超过 20 MB。</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <div class="wrap">
+      <div class="contact">
+        <div><h2>有一个场地想聊聊？</h2><p>请附上场地位置和大致面积，我们会在三个工作日内回复。</p></div>
+        <dl><dt>邮箱</dt><dd><a href="mailto:studio@interval.example">studio@interval.example</a></dd><dt>电话</dt><dd class="num">021-6200 1014</dd></dl>
+        <dl><dt>地址</dt><dd>上海市长宁区愚园路 1088 弄 7 号 3 楼</dd></dl>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap"><span>间筑建筑事务所（示例网站，事务所、人物与项目均为虚构）</span></div></footer>
+
+<script>
+(function () {
+  var btns = document.querySelectorAll('.filters button'), items = document.querySelectorAll('.proj'), empty = document.getElementById('empty');
+  btns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      btns.forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      var f = b.dataset.f, shown = 0;
+      items.forEach(function (it) { var ok = f === 'all' || it.dataset.t === f; it.hidden = !ok; if (ok) shown++; });
+      empty.hidden = shown > 0;
+    });
+  });
+})();
+</script>
+</body>
+</html>

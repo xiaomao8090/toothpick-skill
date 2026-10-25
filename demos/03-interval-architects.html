@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>间筑建筑事务所 · Interval Architects</title>
+<meta name="description" content="间筑是一家位于上海的建筑事务所，专注城市旧区里的小尺度公共建筑：图书馆、菜市场、社区中心。">
+<!--
+【设计方案】
+用户与场景：潜在委托方（街道、文化机构、开发商）和求职建筑师，多在桌面端浏览，想快速看懂"他们做什么类型、做得怎么样"
+风格方向：瑞士网格 —— 建筑师对网格和比例敏感，严格的版式本身就是专业度的证明
+字体：标题 / 正文 Inter Tight + 思源黑体，数字用 Inter Tight 等宽数字
+颜色：背景 #FFFFFF / 文字 #111111 / 次要 #6E6E6E / 线 #DADADA / 强调 #E30613（只用于编号标记和悬停）
+      深色：#111111 / #EDEDED / #9A9A9A / #2A2A2A / #FF4436
+形状：0 圆角，1px 线，12 栏网格，不用阴影
+密度：宽松，大尺度对比
+记忆点：项目索引表 —— 鼠标移到哪一行，右侧就画出那个项目的平面图线稿；超大项目编号
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FFFFFF;
+    --text: #111111;
+    --text-2: #6E6E6E;
+    --line: #DADADA;
+    --accent: #E30613;
+    --hover: #F4F4F4;
+    --wght: 400;
+    --font: "Inter Tight", "Noto Sans SC", -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111111;
+      --text: #EDEDED;
+      --text-2: #9A9A9A;
+      --line: #2A2A2A;
+      --accent: #FF4436;
+      --hover: #1A1A1A;
+      --wght: 360;
+    }
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--font); font-size: 16px; line-height: 1.6; font-weight: var(--wght);
+    font-variant-numeric: tabular-nums;
+  }
+  a { color: inherit; text-decoration: none; }
+  a:focus-visible, button:focus-visible, tr:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .grid { display: grid; grid-template-columns: repeat(12, 1fr); column-gap: 24px; max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+
+  /* 页眉 */
+  header { border-bottom: 1px solid var(--text); }
+  header .grid { height: 64px; align-items: center; }
+  .name { grid-column: 1 / 5; font-weight: 700; font-size: 15px; letter-spacing: -0.005em; }
+  .name span { color: var(--text-2); font-weight: 400; margin-left: 8px; }
+  header nav { grid-column: 7 / 13; display: flex; justify-content: space-between; font-size: 15px; }
+  header nav a { padding: 10px 0; position: relative; }
+  header nav a:hover { color: var(--accent); }
+  header nav a[aria-current]::before { content: ""; position: absolute; left: -14px; top: 50%; width: 6px; height: 6px; background: var(--accent); transform: translateY(-50%); }
+
+  /* 首屏 */
+  .hero { padding: 120px 0 96px; }
+  .hero h1 {
+    grid-column: 1 / 11; margin: 0; text-wrap: balance;
+    font-size: clamp(40px, 6.2vw, 96px); line-height: 1.08; font-weight: 500; letter-spacing: -0.03em;
+  }
+  .hero h1 .soft { color: var(--text-2); }
+  .hero .meta { grid-column: 1 / 13; margin-top: 96px; padding-top: 16px; border-top: 1px solid var(--line); display: grid; grid-template-columns: subgrid; font-size: 14px; }
+  .hero .meta div { grid-column: span 3; }
+  .hero .meta dt { color: var(--text-2); margin-bottom: 4px; }
+  .hero .meta dd { margin: 0; }
+
+  /* 区块标题 */
+  .sec-head { padding-top: 24px; padding-bottom: 48px; border-top: 1px solid var(--text); align-items: baseline; }
+  .sec-head .no { grid-column: 1 / 2; font-size: 14px; color: var(--accent); }
+  .sec-head h2 { grid-column: 2 / 7; margin: 0; font-size: 15px; font-weight: 700; }
+  .sec-head p { grid-column: 7 / 12; margin: 0; color: var(--text-2); font-size: 15px; }
+
+  /* 项目索引 + 平面图预览 */
+  .index-wrap { padding-bottom: 120px; }
+  .index { grid-column: 1 / 9; }
+  .preview { grid-column: 9 / 13; position: sticky; top: 24px; align-self: start; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th { text-align: left; font-weight: 400; color: var(--text-2); font-size: 13px; padding: 0 12px 12px 0; border-bottom: 1px solid var(--text); }
+  td { padding: 18px 12px 18px 0; border-bottom: 1px solid var(--line); vertical-align: baseline; }
+  td.r, th.r { text-align: right; }
+  tbody tr { cursor: pointer; transition: background-color .1s ease-out; }
+  tbody tr:hover, tbody tr.active { background: var(--hover); }
+  tbody tr.active td.pno, tbody tr:hover td.pno { color: var(--accent); }
+  td.pno { width: 56px; color: var(--text-2); padding-left: 8px; }
+  td.pname { font-weight: 500; }
+  td.type, td.city { color: var(--text-2); }
+  .status { font-size: 13px; color: var(--text-2); white-space: nowrap; }
+  .status.wip::before { content: ""; display: inline-block; width: 6px; height: 6px; border: 1px solid var(--text-2); margin-right: 6px; vertical-align: 1px; }
+  .status.done::before { content: ""; display: inline-block; width: 6px; height: 6px; background: var(--text); margin-right: 6px; vertical-align: 1px; }
+
+  .preview figure { margin: 0; }
+  .plan-box { aspect-ratio: 1 / 1; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; padding: 28px; color: var(--text); }
+  .plan-box svg { width: 100%; height: 100%; }
+  .plan-box svg .wall { fill: none; stroke: currentColor; stroke-width: 2; }
+  .plan-box svg .thin { fill: none; stroke: currentColor; stroke-width: .75; }
+  .plan-box svg .hatch { fill: none; stroke: var(--text-2); stroke-width: .5; }
+  .plan-box svg .col { fill: currentColor; }
+  .plan-box svg .acc { fill: none; stroke: var(--accent); stroke-width: 1.25; stroke-dasharray: 3 3; }
+  .plan-box svg { opacity: 1; transition: opacity .15s ease-out; }
+  .plan-box.swap svg { opacity: 0; }
+  .preview figcaption { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; margin-top: 12px; }
+  .preview figcaption .big { font-size: 64px; line-height: .9; font-weight: 500; letter-spacing: -0.04em; }
+  .preview figcaption .cap { color: var(--text-2); text-align: right; align-self: end; }
+
+  /* 重点项目 */
+  .feature { padding-bottom: 120px; }
+  .feature .big-no { grid-column: 1 / 5; font-size: clamp(120px, 16vw, 240px); line-height: .8; font-weight: 500; letter-spacing: -0.06em; margin: 0; }
+  .feature .text { grid-column: 6 / 12; }
+  .feature h3 { font-size: clamp(28px, 2.8vw, 40px); line-height: 1.2; font-weight: 500; letter-spacing: -0.02em; margin: 0 0 24px; }
+  .feature .text p { margin: 0 0 1em; max-width: 34em; line-height: 1.75; }
+  .facts { grid-column: 6 / 12; display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--line); }
+  .facts dt { font-size: 13px; color: var(--text-2); }
+  .facts dd { margin: 4px 0 0; font-size: 28px; font-weight: 500; letter-spacing: -0.02em; }
+  .facts dd small { font-size: 14px; font-weight: 400; color: var(--text-2); margin-left: 2px; }
+  .feature .plan-large { grid-column: 1 / 13; margin-top: 80px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 48px 0; color: var(--text); }
+  .feature .plan-large svg { width: 100%; height: auto; display: block; }
+  .feature .plan-large .wall { fill: none; stroke: currentColor; stroke-width: 2.5; }
+  .feature .plan-large .thin { fill: none; stroke: currentColor; stroke-width: 1; }
+  .feature .plan-large .hatch { fill: none; stroke: var(--text-2); stroke-width: .6; }
+  .feature .plan-large .acc { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 4; }
+  .feature .plan-large text { font-family: var(--font); font-size: 11px; fill: var(--text-2); }
+  .feature .plan-large .col { fill: currentColor; }
+
+  /* 事务所 */
+  .studio { padding-bottom: 120px; }
+  .studio .lead { grid-column: 2 / 8; font-size: 24px; line-height: 1.5; letter-spacing: -0.01em; margin: 0; }
+  .studio .cols { grid-column: 9 / 13; font-size: 15px; color: var(--text-2); }
+  .studio .cols p { margin: 0 0 1em; }
+  .people { grid-column: 2 / 13; margin-top: 72px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; list-style: none; padding: 0; }
+  .people li { border-top: 1px solid var(--text); padding-top: 12px; font-size: 15px; }
+  .people span { display: block; color: var(--text-2); font-size: 13px; }
+
+  /* 联系 */
+  .contact { padding-bottom: 96px; }
+  .contact .mail { grid-column: 2 / 10; font-size: clamp(32px, 5vw, 72px); font-weight: 500; letter-spacing: -0.03em; line-height: 1.1; }
+  .contact .mail a { border-bottom: 2px solid var(--text); transition: color .1s ease-out, border-color .1s ease-out; }
+  .contact .mail a:hover { color: var(--accent); border-color: var(--accent); }
+  .contact .addr { grid-column: 2 / 6; margin-top: 48px; font-size: 15px; }
+  .contact .addr2 { grid-column: 7 / 11; margin-top: 48px; font-size: 15px; }
+  .contact dt { color: var(--text-2); font-size: 13px; margin-bottom: 4px; }
+  .contact dd { margin: 0; }
+
+  footer { border-top: 1px solid var(--text); }
+  footer .grid { padding-top: 16px; padding-bottom: 40px; font-size: 13px; color: var(--text-2); }
+  footer .l { grid-column: 1 / 7; }
+  footer .r { grid-column: 7 / 13; text-align: right; }
+
+  @media (max-width: 960px) {
+    .grid { grid-template-columns: repeat(6, 1fr); padding: 0 20px; column-gap: 16px; }
+    .name { grid-column: 1 / 4; }
+    header nav { grid-column: 4 / 7; gap: 16px; justify-content: flex-end; }
+    header nav a[aria-current]::before { display: none; }
+    .hero { padding: 64px 0 56px; }
+    .hero h1 { grid-column: 1 / -1; }
+    .hero .meta { grid-column: 1 / -1; margin-top: 56px; grid-template-columns: 1fr 1fr; gap: 16px; display: grid; }
+    .hero .meta div { grid-column: auto; }
+    .sec-head .no { grid-column: 1 / 2; }
+    .sec-head h2 { grid-column: 2 / 7; }
+    .sec-head p { grid-column: 1 / -1; margin-top: 12px; }
+    .index { grid-column: 1 / -1; }
+    .preview { display: none; }
+    td.type, th.type, td.area, th.area { display: none; }
+    .feature .big-no, .feature .text, .facts { grid-column: 1 / -1; }
+    .feature .big-no { margin-bottom: 24px; }
+    .facts { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .facts dd { font-size: 22px; }
+    .studio .lead, .studio .cols, .people { grid-column: 1 / -1; }
+    .studio .cols { margin-top: 32px; }
+    .people { grid-template-columns: 1fr 1fr; margin-top: 40px; }
+    .contact .mail, .contact .addr, .contact .addr2 { grid-column: 1 / -1; }
+    .contact .addr2 { margin-top: 24px; }
+    .contact .mail { font-size: 24px; overflow-wrap: anywhere; }
+    footer .l, footer .r { grid-column: 1 / -1; text-align: left; }
+    .index-wrap, .feature, .studio { padding-bottom: 72px; }
+    .feature .plan-large { margin-top: 48px; padding: 24px 0; }
+  }
+  @media (max-width: 480px) {
+    header nav a:not([aria-current]):nth-child(2) { display: none; }
+    td.city, th.city { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="grid">
+    <a class="name" href="#">间筑<span>Interval Architects</span></a>
+    <nav aria-label="主导航">
+      <a href="#projects" aria-current="page">项目</a>
+      <a href="#studio">事务所</a>
+      <a href="#contact">联系</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="grid">
+      <h1>我们在城市旧区里做小尺度的公共建筑。<span class="soft">图书馆、菜市场、社区中心——那些人们每天经过、愿意停下来的地方。</span></h1>
+      <dl class="meta">
+        <div><dt>成立</dt><dd>2014 年，上海</dd></div>
+        <div><dt>团队</dt><dd>14 人</dd></div>
+        <div><dt>建成项目</dt><dd>23 个</dd></div>
+        <div><dt>目前在做</dt><dd>4 个，分布在上海、苏州、宁波</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section id="projects">
+    <div class="grid sec-head">
+      <span class="no">01</span>
+      <h2>项目索引</h2>
+      <p>按时间倒序。把鼠标移到一行上，右侧会显示该项目的首层平面图。</p>
+    </div>
+    <div class="grid index-wrap">
+      <div class="index">
+        <table>
+          <thead>
+            <tr><th></th><th>项目</th><th class="city">城市</th><th class="type">类型</th><th class="r area">面积 m²</th><th class="r">年份</th></tr>
+          </thead>
+          <tbody id="rows">
+            <tr tabindex="0" data-plan="p1" data-area="1,860"><td class="pno">023</td><td class="pname">愚园路社区图书馆</td><td class="city">上海</td><td class="type">图书馆</td><td class="r area">1,860</td><td class="r"><span class="status wip">2026 在建</span></td></tr>
+            <tr tabindex="0" data-plan="p2" data-area="3,420"><td class="pno">022</td><td class="pname">平江路菜市场改造</td><td class="city">苏州</td><td class="type">市场</td><td class="r area">3,420</td><td class="r"><span class="status done">2025</span></td></tr>
+            <tr tabindex="0" data-plan="p3" data-area="2,150"><td class="pno">021</td><td class="pname">月湖街道邻里中心</td><td class="city">宁波</td><td class="type">社区中心</td><td class="r area">2,150</td><td class="r"><span class="status done">2024</span></td></tr>
+            <tr tabindex="0" data-plan="p4" data-area="960"><td class="pno">020</td><td class="pname">南翔小学食堂</td><td class="city">上海</td><td class="type">教育</td><td class="r area">960</td><td class="r"><span class="status done">2023</span></td></tr>
+            <tr tabindex="0" data-plan="p5" data-area="180"><td class="pno">019</td><td class="pname">山塘弄堂茶室</td><td class="city">苏州</td><td class="type">小型商业</td><td class="r area">180</td><td class="r"><span class="status done">2023</span></td></tr>
+            <tr tabindex="0" data-plan="p3" data-area="1,240"><td class="pno">018</td><td class="pname">杨浦滨江驿站（三处）</td><td class="city">上海</td><td class="type">公共服务</td><td class="r area">1,240</td><td class="r"><span class="status done">2022</span></td></tr>
+            <tr tabindex="0" data-plan="p1" data-area="2,600"><td class="pno">017</td><td class="pname">嘉定老城区少年宫加建</td><td class="city">上海</td><td class="type">教育</td><td class="r area">2,600</td><td class="r"><span class="status done">2021</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <aside class="preview" aria-hidden="true">
+        <figure>
+          <div class="plan-box" id="plan-box"></div>
+          <figcaption>
+            <span class="big" id="plan-no">023</span>
+            <span class="cap" id="plan-cap">首层平面<br>1,860 m²</span>
+          </figcaption>
+        </figure>
+      </aside>
+    </div>
+  </section>
+
+  <section>
+    <div class="grid sec-head">
+      <span class="no">02</span>
+      <h2>近作 · 平江路菜市场改造</h2>
+      <p>2025 年建成。一座 1980 年代的室内菜市场，在不停业的前提下分三期改造。</p>
+    </div>
+    <div class="grid feature">
+      <p class="big-no" aria-hidden="true">022</p>
+      <div class="text">
+        <h3>把屋顶抬高 1.8 米，<br>让光从摊位之间落下来。</h3>
+        <p>原来的市场只有 3.2 米净高，白天也要开灯。我们保留了原有的混凝土柱网，在上面加了一层轻钢屋架，沿南北向开出六条天窗。</p>
+        <p>改造期间市场没有关过一天门：摊主们每次搬到已完工的那一半，施工再推进到另一半。最后一期是在春节前两周完成的。</p>
+      </div>
+      <dl class="facts">
+        <div><dt>建筑面积</dt><dd>3,420<small>m²</small></dd></div>
+        <div><dt>摊位</dt><dd>126<small>个</small></dd></div>
+        <div><dt>工期</dt><dd>14<small>个月</small></dd></div>
+      </dl>
+      <div class="plan-large" aria-label="平江路菜市场首层平面图示意">
+        <svg viewBox="0 0 1200 420" role="img">
+          <rect class="wall" x="20" y="20" width="1160" height="380"/>
+          <!-- 柱网 -->
+          <g class="col">
+            <rect x="166" y="96" width="8" height="8"/><rect x="326" y="96" width="8" height="8"/><rect x="486" y="96" width="8" height="8"/><rect x="646" y="96" width="8" height="8"/><rect x="806" y="96" width="8" height="8"/><rect x="966" y="96" width="8" height="8"/>
+            <rect x="166" y="316" width="8" height="8"/><rect x="326" y="316" width="8" height="8"/><rect x="486" y="316" width="8" height="8"/><rect x="646" y="316" width="8" height="8"/><rect x="806" y="316" width="8" height="8"/><rect x="966" y="316" width="8" height="8"/>
+          </g>
+          <!-- 摊位排 -->
+          <g class="thin">
+            <rect x="60" y="130" width="1080" height="40"/><rect x="60" y="250" width="1080" height="40"/>
+            <line x1="150" y1="130" x2="150" y2="170"/><line x1="240" y1="130" x2="240" y2="170"/><line x1="330" y1="130" x2="330" y2="170"/><line x1="420" y1="130" x2="420" y2="170"/><line x1="510" y1="130" x2="510" y2="170"/><line x1="600" y1="130" x2="600" y2="170"/><line x1="690" y1="130" x2="690" y2="170"/><line x1="780" y1="130" x2="780" y2="170"/><line x1="870" y1="130" x2="870" y2="170"/><line x1="960" y1="130" x2="960" y2="170"/><line x1="1050" y1="130" x2="1050" y2="170"/>
+            <line x1="150" y1="250" x2="150" y2="290"/><line x1="240" y1="250" x2="240" y2="290"/><line x1="330" y1="250" x2="330" y2="290"/><line x1="420" y1="250" x2="420" y2="290"/><line x1="510" y1="250" x2="510" y2="290"/><line x1="600" y1="250" x2="600" y2="290"/><line x1="690" y1="250" x2="690" y2="290"/><line x1="780" y1="250" x2="780" y2="290"/><line x1="870" y1="250" x2="870" y2="290"/><line x1="960" y1="250" x2="960" y2="290"/><line x1="1050" y1="250" x2="1050" y2="290"/>
+            <rect x="60" y="40" width="200" height="40"/><rect x="940" y="340" width="200" height="40"/>
+          </g>
+          <!-- 天窗（虚线，强调色） -->
+          <g class="acc">
+            <rect x="200" y="186" width="100" height="48"/><rect x="360" y="186" width="100" height="48"/><rect x="520" y="186" width="100" height="48"/><rect x="680" y="186" width="100" height="48"/><rect x="840" y="186" width="100" height="48"/><rect x="1000" y="186" width="100" height="48"/>
+          </g>
+          <!-- 入口 -->
+          <g class="thin"><line x1="20" y1="190" x2="20" y2="230" stroke-width="6" style="stroke:var(--bg)"/><line x1="1180" y1="190" x2="1180" y2="230" stroke-width="6" style="stroke:var(--bg)"/></g>
+          <text x="60" y="68">熟食 · 豆制品</text><text x="960" y="368">鱼 · 禽</text>
+          <text x="60" y="160">蔬果</text><text x="60" y="280">肉 · 干货</text>
+          <text x="40" y="214">西入口</text><text x="1104" y="214">东入口</text>
+          <text x="560" y="414" text-anchor="middle">虚线：新增天窗 · 柱网保留原 8.0 m × 5.5 m</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <section id="studio">
+    <div class="grid sec-head">
+      <span class="no">03</span>
+      <h2>事务所</h2>
+      <p>我们只接 3,000 平方米以下的项目，这样每个项目都能由合伙人亲自跟到竣工。</p>
+    </div>
+    <div class="grid studio">
+      <p class="lead">我们相信好的公共建筑不靠造型说话。它应该让一位老人愿意多坐十分钟，让一个孩子放学后有地方去。</p>
+      <div class="cols">
+        <p>大部分项目来自街道、教育局和文化机构的委托，也有一部分来自公开竞赛。我们通常从调研开始：在场地里待一周，记录谁在什么时候经过、在哪里停下。</p>
+        <p>我们在招聘：项目建筑师 1 名、实习生 2 名。</p>
+      </div>
+      <ul class="people">
+        <li>周岚<span>主持建筑师 · 合伙人</span></li>
+        <li>陈以舟<span>合伙人 · 技术总监</span></li>
+        <li>沈一苇<span>项目建筑师</span></li>
+        <li>许棠<span>项目建筑师</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="contact">
+    <div class="grid sec-head">
+      <span class="no">04</span>
+      <h2>联系</h2>
+      <p>项目委托请附上场地位置和大致面积；求职请附作品集（PDF，20 MB 以内）。</p>
+    </div>
+    <div class="grid contact">
+      <p class="mail"><a href="mailto:studio@interval.example">studio@interval.example</a></p>
+      <dl class="addr"><dt>地址</dt><dd>上海市长宁区愚园路 1088 弄 7 号 3 楼</dd></dl>
+      <dl class="addr2"><dt>电话</dt><dd>021-6200 1014</dd></dl>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="grid">
+    <span class="l">间筑建筑事务所 · 示例网站，事务所、人物与项目均为虚构</span>
+    <span class="r">沪ICP备 00000000 号（示例）</span>
+  </div>
+</footer>
+
+<template id="p1">
+  <svg viewBox="0 0 200 200"><rect class="wall" x="20" y="20" width="160" height="160"/><rect class="wall" x="70" y="70" width="60" height="60"/><g class="hatch"><line x1="70" y1="85" x2="130" y2="85"/><line x1="70" y1="100" x2="130" y2="100"/><line x1="70" y1="115" x2="130" y2="115"/></g><g class="thin"><line x1="30" y1="40" x2="60" y2="40"/><line x1="30" y1="50" x2="60" y2="50"/><line x1="30" y1="60" x2="60" y2="60"/><line x1="140" y1="40" x2="170" y2="40"/><line x1="140" y1="50" x2="170" y2="50"/><line x1="140" y1="60" x2="170" y2="60"/><line x1="30" y1="140" x2="60" y2="140"/><line x1="30" y1="150" x2="60" y2="150"/><line x1="30" y1="160" x2="60" y2="160"/></g><rect class="acc" x="140" y="140" width="30" height="30"/><g class="col"><rect x="68" y="18" width="4" height="4"/><rect x="128" y="18" width="4" height="4"/><rect x="68" y="178" width="4" height="4"/><rect x="128" y="178" width="4" height="4"/></g></svg>
+</template>
+<template id="p2">
+  <svg viewBox="0 0 200 200"><rect class="wall" x="10" y="50" width="180" height="100"/><g class="thin"><rect x="20" y="70" width="160" height="12"/><rect x="20" y="118" width="160" height="12"/><line x1="40" y1="70" x2="40" y2="82"/><line x1="60" y1="70" x2="60" y2="82"/><line x1="80" y1="70" x2="80" y2="82"/><line x1="100" y1="70" x2="100" y2="82"/><line x1="120" y1="70" x2="120" y2="82"/><line x1="140" y1="70" x2="140" y2="82"/><line x1="160" y1="70" x2="160" y2="82"/><line x1="40" y1="118" x2="40" y2="130"/><line x1="60" y1="118" x2="60" y2="130"/><line x1="80" y1="118" x2="80" y2="130"/><line x1="100" y1="118" x2="100" y2="130"/><line x1="120" y1="118" x2="120" y2="130"/><line x1="140" y1="118" x2="140" y2="130"/><line x1="160" y1="118" x2="160" y2="130"/></g><g class="acc"><rect x="30" y="90" width="20" height="20"/><rect x="65" y="90" width="20" height="20"/><rect x="100" y="90" width="20" height="20"/><rect x="135" y="90" width="20" height="20"/></g></svg>
+</template>
+<template id="p3">
+  <svg viewBox="0 0 200 200"><path class="wall" d="M20 20 H180 V90 H100 V180 H20 Z"/><g class="thin"><line x1="20" y1="60" x2="100" y2="60"/><line x1="60" y1="20" x2="60" y2="60"/><line x1="140" y1="20" x2="140" y2="90"/><line x1="20" y1="130" x2="100" y2="130"/></g><g class="hatch"><line x1="105" y1="100" x2="175" y2="100"/><line x1="105" y1="115" x2="175" y2="115"/><line x1="105" y1="130" x2="175" y2="130"/><line x1="105" y1="145" x2="175" y2="145"/><line x1="105" y1="160" x2="175" y2="160"/><line x1="105" y1="175" x2="175" y2="175"/></g><rect class="acc" x="30" y="70" width="60" height="50"/></svg>
+</template>
+<template id="p4">
+  <svg viewBox="0 0 200 200"><rect class="wall" x="20" y="40" width="160" height="120"/><g class="thin"><rect x="30" y="50" width="40" height="100"/><line x1="30" y1="70" x2="70" y2="70"/><line x1="30" y1="90" x2="70" y2="90"/><line x1="30" y1="110" x2="70" y2="110"/><line x1="30" y1="130" x2="70" y2="130"/></g><g class="hatch"><rect x="85" y="55" width="80" height="8"/><rect x="85" y="75" width="80" height="8"/><rect x="85" y="95" width="80" height="8"/><rect x="85" y="115" width="80" height="8"/><rect x="85" y="135" width="80" height="8"/></g><line class="acc" x1="80" y1="45" x2="80" y2="155"/></svg>
+</template>
+<template id="p5">
+  <svg viewBox="0 0 200 200"><rect class="wall" x="50" y="50" width="100" height="100"/><rect class="thin" x="20" y="20" width="160" height="160"/><g class="hatch"><circle cx="40" cy="40" r="8"/><circle cx="160" cy="45" r="10"/><circle cx="38" cy="165" r="9"/></g><g class="thin"><rect x="70" y="70" width="60" height="60"/><line x1="100" y1="70" x2="100" y2="130"/></g><rect class="acc" x="62" y="150" width="76" height="22"/></svg>
+</template>
+
+<script>
+(function () {
+  var box = document.getElementById('plan-box'), no = document.getElementById('plan-no'), cap = document.getElementById('plan-cap');
+  var rows = document.querySelectorAll('#rows tr'), current = null;
+  function show(tr) {
+    if (tr === current) return;
+    current = tr;
+    rows.forEach(function (r) { r.classList.toggle('active', r === tr); });
+    box.classList.add('swap');
+    setTimeout(function () {
+      box.innerHTML = document.getElementById(tr.dataset.plan).innerHTML;
+      no.textContent = tr.querySelector('.pno').textContent;
+      cap.innerHTML = '首层平面<br>' + tr.dataset.area + ' m²';
+      box.classList.remove('swap');
+    }, 90);
+  }
+  rows.forEach(function (tr) {
+    tr.addEventListener('mouseenter', function () { show(tr); });
+    tr.addEventListener('focus', function () { show(tr); });
+  });
+  box.innerHTML = document.getElementById('p1').innerHTML;
+  rows[0].classList.add('active'); current = rows[0];
+})();
+</script>
+</body>
+</html>

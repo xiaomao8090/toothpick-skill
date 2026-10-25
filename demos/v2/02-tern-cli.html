@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tern：执行数据库迁移前，先知道它会锁多久</title>
+<meta name="description" content="tern 是一个开源的 PostgreSQL 迁移检查工具：执行前分析锁和耗时，在影子库上演练，给出改写建议。">
+<!--
+【方案】
+产品与用户：开源 PostgreSQL 迁移检查工具；后端工程师从 GitHub 或搜索进来，想快速判断它能不能防止线上锁表
+主角：工具的真实输出。首屏放一次完整的命令行运行；第二屏放它在 Pull Request 里留下的检查报告
+颜色：背景 #FFFFFF / 面板 #FAFAFA / 文字 #171717 / 次要 #5C5C5C / 细环 rgba(0,0,0,.08) / 链接 #2457D6
+      终端里的红黄绿只表达状态，只出现在产品画面里
+字体：Inter Tight（标题、正文）+ JetBrains Mono（只用于代码和终端）
+布局：首屏居中，标题字重 500；下方是终端窗口。功能不做三列卡片，直接展示一份检查报告
+自检后改掉的：去掉了上一版的近黑底 + 琥珀色、全站等宽字体、"$"logo、"●"状态点、"##"标签、[✓] 符号和"→"
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FFFFFF; --panel: #FAFAFA; --text: #171717; --text-2: #5C5C5C; --text-3: #8F8F8F;
+    --ring: 0 0 0 1px rgba(0,0,0,.08); --shadow: 0 0 0 1px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.03), 0 12px 32px rgba(0,0,0,.05);
+    --line: rgba(0,0,0,.08); --link: #2457D6;
+    --term-bg: #16181D; --term-text: #E4E6EB; --term-dim: #8B919C;
+    --red: #E5484D; --amber: #D9A53A; --green: #46A758;
+    --badge-red-bg: #FDECEC; --badge-red: #B4232A; --badge-green-bg: #E9F6EC; --badge-green: #1F7A35; --badge-amber-bg: #FBF3E0; --badge-amber: #8A5A00;
+    --wght: 400;
+    --sans: "Inter Tight", "Noto Sans SC", -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111214; --panel: #18191C; --text: #EDEEF0; --text-2: #A0A4AB; --text-3: #6E737B;
+      --ring: 0 0 0 1px rgba(255,255,255,.09); --shadow: 0 0 0 1px rgba(255,255,255,.09);
+      --line: rgba(255,255,255,.09); --link: #7DA2FF; --term-bg: #0B0C0E;
+      --badge-red-bg: rgba(229,72,77,.16); --badge-red: #FF8A8E; --badge-green-bg: rgba(70,167,88,.16); --badge-green: #7FD08F; --badge-amber-bg: rgba(217,165,58,.16); --badge-amber: #F0C46A;
+      --wght: 360;
+    }
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: var(--wght) 16px/1.65 var(--sans); }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  :focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 6px; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+  code, pre, .mono { font-family: var(--mono); font-size: .9em; }
+
+  header .wrap { height: 64px; display: flex; align-items: center; justify-content: space-between; }
+  .brand { color: var(--text); font-weight: 600; font-size: 18px; letter-spacing: -0.01em; }
+  .brand:hover { text-decoration: none; }
+  header nav { display: flex; gap: 4px; align-items: center; font-size: 15px; }
+  header nav a { color: var(--text-2); padding: 8px 12px; border-radius: 8px; }
+  header nav a:hover { color: var(--text); background: var(--panel); text-decoration: none; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 16px; border-radius: 8px; font: 500 15px/1 var(--sans); background: var(--text); color: var(--bg); border: 0; cursor: pointer; transition: opacity .12s; }
+  .btn:hover { opacity: .86; text-decoration: none; }
+  .btn.ghost { background: var(--bg); color: var(--text); box-shadow: var(--ring); }
+  .btn.ghost:hover { background: var(--panel); opacity: 1; }
+
+  /* 首屏 */
+  .hero { text-align: center; padding-top: 72px; padding-bottom: 48px; }
+  .hero h1 { font-size: clamp(36px, 5.2vw, 60px); line-height: 1.12; font-weight: 500; letter-spacing: -0.035em; margin: 0 auto 20px; max-width: 15em; text-wrap: balance; }
+  .hero h1 .ph { display: inline-block; }
+  .hero p { color: var(--text-2); font-size: 18px; max-width: 34em; margin: 0 auto 32px; text-wrap: pretty; }
+  .install { display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 6px 0 16px; border-radius: 10px; box-shadow: var(--ring); background: var(--panel); font-family: var(--mono); font-size: 14px; max-width: 100%; }
+  .install code { white-space: nowrap; overflow-x: auto; min-width: 0; }
+  .install button { height: 32px; padding: 0 10px; border-radius: 6px; border: 0; background: var(--bg); box-shadow: var(--ring); color: var(--text-2); font: 500 13px/1 var(--sans); cursor: pointer; }
+  .install button:hover { color: var(--text); }
+  .hero .row { display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; }
+
+  /* 终端窗口 */
+  .window { margin: 56px auto 0; max-width: 920px; border-radius: 12px; background: var(--term-bg); box-shadow: 0 0 0 1px rgba(0,0,0,.2), 0 24px 64px rgba(0,0,0,.18); overflow: hidden; text-align: left; }
+  .window .bar { height: 40px; display: flex; align-items: center; padding: 0 14px; gap: 8px; border-bottom: 1px solid rgba(255,255,255,.06); }
+  .window .bar i { width: 11px; height: 11px; border-radius: 50%; background: rgba(255,255,255,.14); }
+  .window .bar span { flex: 1; text-align: center; color: var(--term-dim); font: 12px var(--sans); margin-right: 50px; }
+  .window pre { margin: 0; padding: 20px 24px 28px; color: var(--term-text); font: 13.5px/1.75 var(--mono); white-space: pre-wrap; word-break: break-word; min-height: 440px; }
+  .p { color: var(--term-dim); }
+  .r { color: #FF8A8E; } .g { color: #7FD08F; } .y { color: #F0C46A; } .d { color: var(--term-dim); }
+  .cursor { display: inline-block; width: 8px; height: 16px; background: var(--term-text); vertical-align: -3px; animation: blink 1.1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .replay { display: block; margin: 12px auto 0; background: none; border: 0; color: var(--text-2); font: 14px var(--sans); cursor: pointer; padding: 8px 12px; border-radius: 8px; }
+  .replay:hover { color: var(--text); background: var(--panel); }
+
+  section { padding: 112px 0; }
+  .sec-title { max-width: 36em; margin-bottom: 40px; }
+  h2 { font-size: clamp(28px, 3.4vw, 40px); line-height: 1.2; font-weight: 500; letter-spacing: -0.025em; margin: 0 0 12px; }
+  .sec-title p { margin: 0; color: var(--text-2); font-size: 17px; }
+
+  /* PR 检查报告 */
+  .report { border-radius: 12px; box-shadow: var(--shadow); background: var(--bg); overflow: hidden; }
+  .report-head { display: flex; align-items: center; gap: 12px; padding: 16px 20px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .report-head b { font-weight: 600; }
+  .report-head .meta { color: var(--text-2); font-size: 14px; }
+  .badge { display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border-radius: 999px; font-size: 13px; font-weight: 500; white-space: nowrap; }
+  .badge.red { background: var(--badge-red-bg); color: var(--badge-red); }
+  .badge.green { background: var(--badge-green-bg); color: var(--badge-green); }
+  .badge.amber { background: var(--badge-amber-bg); color: var(--badge-amber); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; font-weight: 500; color: var(--text-2); padding: 12px 20px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { padding: 14px 20px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td code { color: var(--text); background: var(--panel); padding: 1px 6px; border-radius: 4px; font-size: 13px; }
+  .file { font-family: var(--mono); font-size: 13px; }
+  .stmt { color: var(--text-2); font-family: var(--mono); font-size: 12.5px; margin-top: 2px; }
+  .fix { margin: 0; padding: 16px 20px 20px; border-top: 1px solid var(--line); }
+  .fix p { margin: 0 0 10px; font-size: 14px; }
+  .fix pre { margin: 0; padding: 14px 16px; border-radius: 8px; background: var(--panel); font: 12.5px/1.7 var(--mono); overflow-x: auto; color: var(--text); }
+  .fix .c { color: var(--text-3); }
+  .table-scroll { overflow-x: auto; }
+
+  .points { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; margin-top: 48px; }
+  .points h3 { font-size: 16px; font-weight: 600; margin: 0 0 6px; }
+  .points p { margin: 0; color: var(--text-2); font-size: 15px; }
+
+  /* 快速开始：确实是步骤 */
+  .steps { list-style: none; margin: 0; padding: 0; counter-reset: s; max-width: 760px; }
+  .steps li { counter-increment: s; display: grid; grid-template-columns: 32px 1fr; gap: 0 16px; padding-bottom: 28px; position: relative; }
+  .steps li::before { content: counter(s); width: 28px; height: 28px; border-radius: 50%; box-shadow: var(--ring); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; color: var(--text-2); background: var(--bg); position: relative; z-index: 1; }
+  .steps li:not(:last-child)::after { content: ""; position: absolute; left: 14px; top: 32px; bottom: 4px; width: 1px; background: var(--line); }
+  .steps li > div { min-width: 0; }
+  .steps p { margin: 2px 0 10px; }
+  .steps pre { margin: 0; padding: 12px 16px; border-radius: 8px; background: var(--panel); box-shadow: var(--ring); font: 13px/1.7 var(--mono); overflow-x: auto; }
+  .steps .d { color: var(--text-3); }
+  .note { margin-top: 24px; max-width: 760px; padding: 16px 20px; border-radius: 10px; background: var(--panel); font-size: 15px; color: var(--text-2); }
+  .note b { color: var(--text); font-weight: 500; }
+
+  footer { padding: 40px 0 56px; font-size: 14px; color: var(--text-2); }
+  footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 24px; }
+  footer nav { display: flex; gap: 20px; }
+  footer a { color: var(--text-2); }
+
+  @media (max-width: 820px) {
+    header nav a.hide-sm { display: none; }
+    .hero { padding-top: 40px; padding-bottom: 32px; }
+    .window pre { font-size: 12px; padding: 16px; min-height: 520px; }
+    .window .bar span { margin-right: 0; }
+    .points { grid-template-columns: 1fr; gap: 20px; }
+    section { padding: 72px 0; }
+    th, td { padding: 12px 14px; }
+    .hide-sm { display: none; }
+  }
+  @media (max-width: 420px) { .wrap { padding: 0 16px; } .install { font-size: 12.5px; } }
+  @media (prefers-reduced-motion: reduce) { .cursor { animation: none; } * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <a class="brand" href="#">tern</a>
+    <nav aria-label="主导航">
+      <a href="#report" class="hide-sm">工作方式</a>
+      <a href="#start" class="hide-sm">快速开始</a>
+      <a href="#">文档</a>
+      <a href="#">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <h1><span class="ph">执行数据库迁移之前，</span><span class="ph">先知道它会锁哪张表、锁多久</span></h1>
+    <p>tern 在迁移执行前分析每条语句的锁和耗时，在影子库上完整演练一遍，并告诉你有风险的语句该怎么改。开源，支持 PostgreSQL 12 到 17。</p>
+    <div class="row">
+      <div class="install"><code id="cmd">brew install tern-db/tap/tern</code><button type="button" id="copy">复制</button></div>
+      <a class="btn ghost" href="#start">查看文档</a>
+    </div>
+
+    <div class="window" aria-label="tern plan 运行示例">
+      <div class="bar"><i></i><i></i><i></i><span>shop-api</span></div>
+      <pre id="screen"></pre>
+    </div>
+    <button class="replay" id="replay" type="button">重新播放</button>
+  </div>
+
+  <section id="report">
+    <div class="wrap">
+      <div class="sec-title">
+        <h2>它会在你的 Pull Request 里留下这样一份报告</h2>
+        <p>代码审查能看出 SQL 写得对不对，但很难看出它在一张 800 万行的表上会锁多久。tern 补上的是这一部分。</p>
+      </div>
+
+      <div class="report">
+        <div class="report-head">
+          <b>tern plan</b>
+          <span class="badge red">1 个阻塞问题</span>
+          <span class="meta">基于 replica:5432/shop，2 个待执行迁移，用时 4.2 秒</span>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>迁移文件</th><th>锁级别</th><th class="n">影响行数</th><th class="n">预计阻塞</th><th>结果</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><div class="file">0041_index_sku.sql</div><div class="stmt">CREATE INDEX CONCURRENTLY idx_sku ON products (sku)</div></td>
+                <td>SHARE UPDATE EXCLUSIVE</td>
+                <td class="n">1,204,880</td>
+                <td class="n">0 秒</td>
+                <td><span class="badge green">通过</span></td>
+              </tr>
+              <tr>
+                <td><div class="file">0042_add_status.sql</div><div class="stmt">ALTER TABLE orders ADD COLUMN status text NOT NULL DEFAULT 'paid'</div></td>
+                <td>ACCESS EXCLUSIVE</td>
+                <td class="n">8,214,330</td>
+                <td class="n">约 41 秒</td>
+                <td><span class="badge red">超过 2 秒上限</span></td>
+              </tr>
+              <tr>
+                <td><div class="file">0042_add_status.sql</div><div class="stmt">回滚脚本</div></td>
+                <td>—</td>
+                <td class="n">—</td>
+                <td class="n">—</td>
+                <td><span class="badge amber">已生成草稿</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="fix">
+          <p>建议把 <code>0042_add_status.sql</code> 拆成三步，每一步的锁都在 1 秒以内：</p>
+<pre>ALTER TABLE orders ADD COLUMN status text;
+UPDATE orders SET status = 'paid' WHERE id BETWEEN $1 AND $2;   <span class="c">-- 每批 1 万行，tern 会生成分批脚本</span>
+ALTER TABLE orders ADD CONSTRAINT status_nn CHECK (status IS NOT NULL) NOT VALID;
+ALTER TABLE orders VALIDATE CONSTRAINT status_nn;</pre>
+        </div>
+      </div>
+
+      <div class="points">
+        <div><h3>锁分析</h3><p>对每条 DDL 标出会拿到的锁，结合表的真实行数估算阻塞时间。超过你设定的上限，CI 直接失败。</p></div>
+        <div><h3>影子库演练</h3><p>用生产库的结构和统计信息拉起一个临时实例，把迁移真实跑一遍，跑完即销毁，不碰生产数据。</p></div>
+        <div><h3>回滚草稿</h3><p>没写 down 迁移时，根据 up 语句生成回滚脚本草稿，并标出删列这类无法自动回滚的操作。</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="start">
+    <div class="wrap">
+      <div class="sec-title">
+        <h2>接入现有项目</h2>
+        <p>不需要改动任何迁移文件。支持 Flyway、golang-migrate、Prisma 和 Rails 生成的 SQL。</p>
+      </div>
+      <ol class="steps">
+        <li><div><p>安装（macOS / Linux），或者使用 Docker 镜像</p><pre>brew install tern-db/tap/tern
+docker run --rm ghcr.io/tern-db/tern:0.9 --help</pre></div></li>
+        <li><div><p>在项目根目录生成配置，指定迁移文件的位置</p><pre>tern init --migrations ./db/migrations</pre></div></li>
+        <li><div><p>连接一个只读副本，运行第一次分析</p><pre>export TERN_DSN="postgres://readonly@replica:5432/shop"
+tern plan</pre></div></li>
+        <li><div><p>加入 CI，风险超过上限时阻止合并</p><pre><span class="d"># .github/workflows/migrate.yml</span>
+- run: tern plan --max-lock 2s --format github</pre></div></li>
+      </ol>
+      <div class="note"><b>目前还不支持：</b>MySQL 和 SQLite（MySQL 在计划中），存储过程内部的 DDL，Windows 原生运行（可以用 WSL 或 Docker）。</div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>tern，MIT 许可证。示例网站，项目为虚构。</span>
+    <nav aria-label="页脚"><a href="#">文档</a><a href="#">更新日志</a><a href="#">GitHub</a></nav>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var copy = document.getElementById('copy');
+  copy.addEventListener('click', function () {
+    var done = function () { copy.textContent = '已复制'; setTimeout(function () { copy.textContent = '复制'; }, 1600); };
+    try { navigator.clipboard.writeText(document.getElementById('cmd').textContent).then(done, done); } catch (e) { done(); }
+  });
+
+  var screen = document.getElementById('screen');
+  var P = '<span class="p">~/shop-api %</span> ';
+  var script = [
+    ['cmd', 'tern plan --max-lock 2s'],
+    ['out', '<span class="d">读取 db/migrations，找到 2 个待执行迁移</span>', 450],
+    ['out', '<span class="d">连接 replica:5432/shop，读取表统计信息</span>', 600],
+    ['out', '', 150],
+    ['out', '<span class="g">通过</span>  0041_index_sku.sql', 250],
+    ['out', '      CREATE INDEX CONCURRENTLY idx_sku ON products (sku);', 120],
+    ['out', '      <span class="d">SHARE UPDATE EXCLUSIVE，不阻塞读写，预计耗时 12 秒</span>', 500],
+    ['out', '', 150],
+    ['out', '<span class="r">失败</span>  0042_add_status.sql', 250],
+    ['out', "      ALTER TABLE orders ADD COLUMN status text NOT NULL DEFAULT 'paid';", 120],
+    ['out', '      <span class="r">ACCESS EXCLUSIVE，orders 共 8,214,330 行，预计阻塞 41 秒</span>', 550],
+    ['out', '      <span class="d">阻塞期间所有读写 orders 的请求都会排队</span>', 550],
+    ['out', '', 150],
+    ['out', '<span class="y">建议</span>  拆成三步执行，每步锁在 1 秒以内', 300],
+    ['out', '      运行 <span class="g">tern fix 0042</span> 生成改写后的迁移文件', 500],
+    ['out', '', 150],
+    ['out', '1 个问题超过上限（2 秒），退出码 1', 300],
+    ['end']
+  ];
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, run = 0, timer;
+  function render(lines, typing) { screen.innerHTML = lines.join('\n') + (lines.length ? '\n' : '') + P + (typing || '') + '<span class="cursor"></span>'; }
+  function play() {
+    var id = ++run, lines = [], i = 0; clearTimeout(timer);
+    if (reduce) { script.forEach(function (s) { if (s[0] === 'cmd') lines.push(P + s[1]); else if (s[0] === 'out') lines.push(s[1]); }); render(lines, ''); return; }
+    function step() {
+      if (id !== run || i >= script.length) return;
+      var s = script[i];
+      if (s[0] === 'end') { render(lines, ''); return; }
+      if (s[0] === 'cmd') {
+        var k = 0;
+        (function type() { if (id !== run) return; render(lines, s[1].slice(0, k)); if (k++ < s[1].length) timer = setTimeout(type, 55 + Math.random() * 50); else timer = setTimeout(function () { lines.push(P + s[1]); i++; step(); }, 350); })();
+      } else { lines.push(s[1]); i++; screen.innerHTML = lines.join('\n'); timer = setTimeout(step, s[2]); }
+    }
+    render(lines, ''); timer = setTimeout(step, 500);
+  }
+  document.getElementById('replay').addEventListener('click', play);
+  if ('IntersectionObserver' in window) { var seen = false; new IntersectionObserver(function (es) { if (es[0].isIntersecting && !seen) { seen = true; play(); } }, { threshold: .3 }).observe(screen); } else play();
+})();
+</script>
+</body>
+</html>

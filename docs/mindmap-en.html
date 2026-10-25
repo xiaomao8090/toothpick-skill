@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --bg: #FFFFFF; --text: #17171A; --text-2: #5E5F66; --chip: #F4F4F2; --line: #D9D8D4;
+    --root: #17171A; --root-text: #FFFFFF; --accent: #2F5BD3; --accent-bg: #EAF0FD;
+  }
+  .dark {
+    --bg: #0D1117; --text: #E6E8EB; --text-2: #9AA0A9; --chip: #1A1F27; --line: #353B45;
+    --root: #E6E8EB; --root-text: #0D1117; --accent: #86A3F5; --accent-bg: #1B2540;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); font-family: "Inter", -apple-system, "Segoe UI", sans-serif; color: var(--text); -webkit-font-smoothing: antialiased; }
+  .map { position: relative; width: 1720px; padding: 56px 48px; display: grid; grid-template-columns: 1fr 260px 1fr; align-items: center; column-gap: 64px; }
+  svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  svg.wires path { fill: none; stroke: var(--line); stroke-width: 1.5; }
+  svg.wires path.acc { stroke: var(--accent); stroke-width: 2; }
+  .side { display: flex; flex-direction: column; gap: 36px; position: relative; z-index: 1; }
+  .branch { display: flex; align-items: center; gap: 40px; }
+  .left .branch { flex-direction: row-reverse; }
+  .bname { flex: none; font-size: 21px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.3; }
+  .left .bname { text-align: right; }
+  .bname small { display: block; font-size: 13px; font-weight: 400; color: var(--text-2); margin-top: 2px; letter-spacing: 0; }
+  .leaves { display: flex; flex-direction: column; gap: 8px; }
+  .left .leaves { align-items: flex-end; }
+  .leaf { display: inline-flex; align-items: baseline; gap: 10px; background: var(--chip); border-radius: 10px; padding: 8px 14px; font-size: 15px; font-weight: 500; line-height: 1.4; white-space: nowrap; }
+  .leaf span { color: var(--text-2); font-weight: 400; font-size: 13.5px; }
+  .leaf b { color: var(--text-2); font-weight: 500; font-size: 13px; min-width: 14px; font-variant-numeric: tabular-nums; }
+  .acc .bname { color: var(--accent); }
+  .acc .leaf { background: var(--accent-bg); font-size: 17px; font-weight: 600; padding: 12px 18px; }
+  .root { position: relative; z-index: 1; background: var(--root); color: var(--root-text); border-radius: 22px; padding: 28px 24px; text-align: center; }
+  .root h1 { margin: 0; font-size: 34px; letter-spacing: -0.02em; font-weight: 700; font-family: "Inter", "Noto Sans CJK SC", sans-serif; }
+  .root p { margin: 8px 0 0; font-size: 15px; opacity: .75; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="map" id="map">
+  <svg class="wires" id="wires"></svg>
+
+  <div class="side left">
+    <div class="branch acc">
+      <div class="bname">The core test</div>
+      <div class="leaves"><div class="leaf">Made for this product, or for any product?</div></div>
+    </div>
+    <div class="branch">
+      <div class="bname">AI tells<small>39, each says when it is fine</small></div>
+      <div class="leaves">
+        <div class="leaf">Old clichés <span>gradients, emoji icons, card kits</span></div>
+        <div class="leaf">Faking taste <span>style costumes, symbols as content</span></div>
+        <div class="leaf">Surface habits <span>side stripes, hard shadows, stripes</span></div>
+        <div class="leaf">Hollowed-out pages <span>decoration gone, no substance</span></div>
+        <div class="leaf">Fooling developers <span>fake features, mock data, dead clicks</span></div>
+      </div>
+    </div>
+    <div class="branch">
+      <div class="bname">References<small>a reference, not a template</small></div>
+      <div class="leaves">
+        <div class="leaf">Measured products <span>Vercel, GitHub, ChatGPT, +2</span></div>
+        <div class="leaf">Official guidelines <span>Apple, Material, Carbon, Fluent</span></div>
+        <div class="leaf">Craft details <span>radius, shadows, browser-native parts</span></div>
+        <div class="leaf">READMEs and maps <span>first screen, evidence, map rules</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="root" id="root"><h1>Toothpick</h1><p>Pick out the AI flavor,<br>avoid common flaws</p></div>
+
+  <div class="side right">
+    <div class="branch">
+      <div class="bname">Seven steps</div>
+      <div class="leaves">
+        <div class="leaf"><b>1</b>Read the project, judge the mode</div>
+        <div class="leaf"><b>2</b>Inventory what is unique</div>
+        <div class="leaf"><b>3</b>Write the argument <span>one claim per section</span></div>
+        <div class="leaf"><b>4</b>Write a short plan</div>
+        <div class="leaf"><b>5</b>Ask: default or choice?</div>
+        <div class="leaf"><b>6</b>Build <span>real data in product fragments</span></div>
+        <div class="leaf"><b>7</b>Review, then remove one thing</div>
+      </div>
+    </div>
+    <div class="branch">
+      <div class="bname">Ground rules</div>
+      <div class="leaves">
+        <div class="leaf">Fake nothing <span>logos, data, reviews, facts</span></div>
+        <div class="leaf">Fool no developer <span>no fake features or clicks</span></div>
+        <div class="leaf">Placeholder list on delivery</div>
+        <div class="leaf">Copy says what it does</div>
+        <div class="leaf">Restraint is not emptiness</div>
+      </div>
+    </div>
+    <div class="branch">
+      <div class="bname">Works with</div>
+      <div class="leaves">
+        <div class="leaf">Claude <span>skills folder</span></div>
+        <div class="leaf">Codex <span>point AGENTS.md to it</span></div>
+        <div class="leaf">DeepSeek <span>paste into the system prompt</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  if (location.hash === '#dark') document.documentElement.className = 'dark';
+  function draw() {
+    var map = document.getElementById('map'), svg = document.getElementById('wires'), M = map.getBoundingClientRect();
+    svg.setAttribute('viewBox', '0 0 ' + M.width + ' ' + M.height);
+    var root = document.getElementById('root').getBoundingClientRect(), out = '';
+    function c(a, b, acc) { var mx = (a[0] + b[0]) / 2; out += '<path class="' + (acc ? 'acc' : '') + '" d="M' + a[0] + ' ' + a[1] + ' C' + mx + ' ' + a[1] + ' ' + mx + ' ' + b[1] + ' ' + b[0] + ' ' + b[1] + '"/>'; }
+    document.querySelectorAll('.branch').forEach(function (br) {
+      var left = br.closest('.left') !== null, acc = br.classList.contains('acc');
+      var n = br.querySelector('.bname').getBoundingClientRect();
+      var ry = root.top + root.height / 2 - M.top;
+      var rp = [left ? root.left - M.left : root.right - M.left, ry];
+      var np = [left ? n.right - M.left + 12 : n.left - M.left - 12, n.top + n.height / 2 - M.top];
+      c(rp, np, acc);
+      br.querySelectorAll('.leaf').forEach(function (lf) {
+        var l = lf.getBoundingClientRect();
+        var a = [left ? n.left - M.left - 12 : n.right - M.left + 12, n.top + n.height / 2 - M.top];
+        var b = [left ? l.right - M.left : l.left - M.left, l.top + l.height / 2 - M.top];
+        c(a, b, acc);
+      });
+    });
+    svg.innerHTML = out;
+  }
+  document.fonts.ready.then(draw);
+</script>
+</body>
+</html>
