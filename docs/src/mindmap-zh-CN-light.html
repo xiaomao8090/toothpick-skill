@@ -1,0 +1,44 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+:root { --bg:transparent; --text:#1F2328; --text2:#59636E; --chip:#F3F3F1; --line:#D0D7DE; --accent:#2F5BD3; --accentbg:#EAF0FD; --root:#1F2328; --rootText:#FFFFFF; --frame:rgba(31,35,40,.12); --tag:#1F2328; --tagText:#FFFFFF; --tag2:#EAEEF2; --tag2Text:#1F2328; }
+* { box-sizing: border-box; }
+html, body { margin:0; background: var(--bg); }
+body { font-family: "Inter", "Noto Sans CJK SC", sans-serif; color: var(--text); -webkit-font-smoothing: antialiased; }
+
+.map { position:relative; width:1000px; padding:24px 24px 16px; }
+svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; }
+svg path { fill:none; stroke:var(--line); stroke-width:1.5; }
+svg path.acc { stroke:var(--accent); stroke-width:2; }
+.root { position:relative; z-index:1; margin:0 auto; width:max-content; background:var(--root); color:var(--rootText); border-radius:16px; padding:18px 32px; text-align:center; }
+.root b { display:block; font-size:30px; letter-spacing:-0.02em; font-weight:650; }
+.root span { font-size:15px; opacity:.78; }
+.cols { position:relative; z-index:1; display:grid; grid-template-columns:1fr 1fr; gap:40px; margin-top:44px; }
+.col { padding-left:28px; }
+.branch { margin-bottom:26px; }
+.bname { display:flex; align-items:baseline; gap:10px; margin-bottom:10px; }
+.bname b { font-size:21px; font-weight:650; letter-spacing:-0.01em; }
+.bname small { font-size:14px; color:var(--text2); }
+.acc .bname b { color:var(--accent); }
+.leaves { display:flex; flex-direction:column; gap:7px; }
+.leaf { background:var(--chip); border-radius:9px; padding:8px 13px; font-size:16px; line-height:1.4; display:flex; gap:10px; flex-wrap:wrap; align-items:baseline; }
+.leaf .k { font-weight:550; white-space:pre; }
+.leaf .n { color:var(--text2); font-size:14.5px; }
+.acc .leaf { background:var(--accentbg); font-weight:600; }
+</style></head><body><div class="map" id="cap"><svg id="w"></svg>
+<div class="root" id="root"><b>牙签 Toothpick</b><span>让 AI 认出 AI 味，避开常见缺陷</span></div>
+<div class="cols"><div class="col"><div class="branch acc"><div class="bname"><b>核心判断</b></div><div class="leaves"><div class="leaf"><span class="k">为这个产品做的，还是换成任何产品都会这么做？</span></div></div></div><div class="branch"><div class="bname"><b>AI 味识别</b><small>40 条，每条写明何时可用</small></div><div class="leaves"><div class="leaf"><span class="k">老套路</span><span class="n">渐变、emoji 图标、卡片套件</span></div><div class="leaf"><span class="k">假装有设计感</span><span class="n">风格戏服、符号冒充内容</span></div><div class="leaf"><span class="k">表面习惯</span><span class="n">彩色竖条、硬阴影、条纹背景</span></div><div class="leaf"><span class="k">掏空的页面</span><span class="n">去了装饰却没补实质</span></div><div class="leaf"><span class="k">糊弄开发者</span><span class="n">编功能、假数据、假交互</span></div></div></div><div class="branch"><div class="bname"><b>参照</b><small>只作参照，不当模板</small></div><div class="leaves"><div class="leaf"><span class="k">大厂实测</span><span class="n">Vercel、GitHub、钉钉、掘金等九家</span></div><div class="leaf"><span class="k">官方规范</span><span class="n">苹果、Material、Carbon、Fluent</span></div><div class="leaf"><span class="k">做工细节</span><span class="n">圆角、阴影、浏览器自带部件</span></div><div class="leaf"><span class="k">README 与导图</span><span class="n">第一屏、证据图、导图规范</span></div></div></div></div><div class="col"><div class="branch"><div class="bname"><b>七步流程</b><small>按改动大小取舍</small></div><div class="leaves"><div class="leaf"><span class="k">0  先看改动大小</span><span class="n">小改动直接改</span></div><div class="leaf"><span class="k">1  先读项目，判断页面模式</span></div><div class="leaf"><span class="k">2  盘点客户独有的东西</span></div><div class="leaf"><span class="k">3  先写论证</span><span class="n">每个板块一个主张</span></div><div class="leaf"><span class="k">4  写简短方案</span></div><div class="leaf"><span class="k">5  自问：默认值还是选择</span></div><div class="leaf"><span class="k">6  实现</span><span class="n">产品片段用真实数据</span></div><div class="leaf"><span class="k">7  看成品，去掉一样东西</span></div></div></div><div class="branch"><div class="bname"><b>底线</b></div><div class="leaves"><div class="leaf"><span class="k">不伪造</span><span class="n">logo、数据、评价、专业事实</span></div><div class="leaf"><span class="k">不糊弄开发者</span><span class="n">不编功能、不做假交互</span></div><div class="leaf"><span class="k">交付附占位清单</span></div><div class="leaf"><span class="k">文案说清楚做什么</span></div><div class="leaf"><span class="k">克制不等于空</span></div></div></div><div class="branch"><div class="bname"><b>用在哪</b></div><div class="leaves"><div class="leaf"><span class="k">Claude</span><span class="n">skills 目录</span></div><div class="leaf"><span class="k">Codex</span><span class="n">AGENTS.md 指向</span></div><div class="leaf"><span class="k">DeepSeek</span><span class="n">贴进系统提示词</span></div></div></div></div></div></div>
+<script>
+document.fonts.ready.then(function(){
+ var M=document.getElementById('cap').getBoundingClientRect(), r=document.getElementById('root').getBoundingClientRect(), out='';
+ var rx=r.left+r.width/2-M.left, ry=r.bottom-M.top;
+ document.querySelectorAll('.col').forEach(function(c){
+   var cr=c.getBoundingClientRect(), sx=cr.left-M.left+6, names=c.querySelectorAll('.bname');
+   var first=names[0].getBoundingClientRect(), last=names[names.length-1].getBoundingClientRect();
+   var fy=first.top+first.height/2-M.top, ly=last.top+last.height/2-M.top, my=(ry+fy)/2;
+   out+='<path d="M'+rx+' '+ry+' C'+rx+' '+my+' '+sx+' '+(my-6)+' '+sx+' '+fy+'"/>';
+   out+='<path d="M'+sx+' '+fy+' L'+sx+' '+ly+'"/>';
+   names.forEach(function(n){ var b=n.getBoundingClientRect(), y=b.top+b.height/2-M.top, acc=n.parentNode.classList.contains('acc');
+     out+='<path class="'+(acc?'acc':'')+'" d="M'+sx+' '+y+' L'+(b.left-M.left-8)+' '+y+'"/>'; });
+ });
+ document.getElementById('w').innerHTML=out;
+});
+</script></body></html>

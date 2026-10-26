@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#16181b" media="(prefers-color-scheme: dark)">
+<title>Refunds - Shop admin</title>
+<!--
+English version of refunds-admin.html. Same design; copy, names, prices and dates localized.
+
+[Mode] Operate. Support staff open this page dozens of times a day to make one decision: approve or decline this refund.
+So: density first, as many pending refunds on one screen as possible; waiting time is the most visible column, because
+running late is the real risk; details open in a side panel instead of a new page.
+
+[Only this admin has]
+1. Three states: pending, refunded, declined (from the brief)
+2. The buyer picks a reason from a fixed list, then writes a note
+3. Some orders have not shipped (refund only), some were delivered (return and refund); they are handled differently
+4. Partial refunds: the refund can be less than the amount paid
+5. Payment methods: card and PayPal; money goes back the way it came
+6. An approved refund cannot be taken back, so only that step asks for confirmation; declining needs a reason the buyer will see
+7. Staff care about how long a request has waited; over 24 hours shows in red (my assumption, see placeholders)
+
+[Light and dark] Dark mode included and designed separately, not inverted: staff work evening shifts.
+
+[Placeholders]
+- Mock data: MOCK_REFUNDS in this file, fields follow an assumed GET /api/refunds response
+- Not connected: approve, decline and bulk approve only change data in the page; no requests (marked TODO in code)
+- Not connected: navigation links other than Refunds; the buyer's evidence photos
+- Demo only: the "Demo state" switch in the footer shows loading, error and empty states; remove it in production
+- Assumptions: over 24 hours counts as late; the four decline reasons
+- Demo content: the shop, buyers and orders are fictional
+-->
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f4f5f7;
+  --panel: #ffffff;
+  --sunken: #f7f8fa;
+  --text: #1f2329;
+  --text-2: #4e5661;
+  --text-3: #8a919c;
+  --line: #e3e5e9;
+  --line-strong: #cfd3d9;
+  --accent: #1f6feb;
+  --accent-weak: #e8f0fe;
+  --accent-text: #ffffff;
+  --danger: #c4362b;
+  --danger-weak: #fdecea;
+  --ok: #1a7f45;
+  --ok-weak: #e6f4ec;
+  --warn: #9a5b00;
+  --row-hover: #f7f8fa;
+  --row-sel: #eef4ff;
+  --shadow: 0 0 0 1px rgba(15, 20, 30, .06), 0 2px 6px rgba(15, 20, 30, .05);
+  --overlay: rgba(15, 20, 30, .32);
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #16181b;
+    --panel: #1e2125;
+    --sunken: #191b1e;
+    --text: #e6e8eb;
+    --text-2: #b0b6be;
+    --text-3: #7d848e;
+    --line: #2c3036;
+    --line-strong: #3a3f46;
+    --accent: #5b9cf5;
+    --accent-weak: #1f2d42;
+    --accent-text: #0e1420;
+    --danger: #f07b70;
+    --danger-weak: #3a2222;
+    --ok: #5cc48a;
+    --ok-weak: #1b3326;
+    --warn: #e0a54a;
+    --row-hover: #23262b;
+    --row-sel: #1f2a3a;
+    --shadow: 0 0 0 1px rgba(255, 255, 255, .06);
+    --overlay: rgba(0, 0, 0, .55);
+  }
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); scrollbar-color: var(--line-strong) transparent; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 400 14px/1.57 var(--font); -webkit-font-smoothing: antialiased; }
+::selection { background: var(--accent-weak); }
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* layout: navigation, main area, details */
+.app { display: grid; grid-template-columns: 208px minmax(0, 1fr); min-height: 100vh; }
+.nav { background: var(--panel); border-right: 1px solid var(--line); padding: 14px 10px; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 2px; }
+.nav .shop { font-weight: 600; font-size: 15px; padding: 6px 10px 14px; }
+.nav a { display: flex; justify-content: space-between; align-items: center; height: 36px; padding: 0 10px; border-radius: 6px; color: var(--text-2); }
+.nav a:hover { background: var(--row-hover); color: var(--text); }
+.nav a[aria-current="page"] { background: var(--accent-weak); color: var(--accent); font-weight: 600; }
+.nav .count { font-size: 12px; min-width: 20px; height: 18px; padding: 0 6px; border-radius: 9px; background: var(--danger); color: #fff; display: inline-grid; place-items: center; font-weight: 600; }
+.nav .grow { flex: 1; }
+.nav .me { font-size: 13px; color: var(--text-3); padding: 8px 10px; }
+
+.main { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) 380px; }
+.list { min-width: 0; padding: 16px 20px 24px; }
+.head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+.head h1 { margin: 0; font-size: 20px; font-weight: 600; line-height: 28px; }
+.summary { display: flex; gap: 18px; color: var(--text-2); font-size: 13px; }
+.summary b { color: var(--text); font-weight: 600; }
+.summary .late b { color: var(--danger); }
+
+/* filters */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+.tabs { display: inline-flex; background: var(--panel); border-radius: 8px; box-shadow: var(--shadow); padding: 3px; }
+.tabs button { border: 0; background: transparent; height: 28px; padding: 0 12px; border-radius: 6px; color: var(--text-2); font-size: 13px; }
+.tabs button:hover { color: var(--text); }
+.tabs button[aria-pressed="true"] { background: var(--accent-weak); color: var(--accent); font-weight: 600; }
+.tabs .c { margin-left: 4px; color: inherit; opacity: .75; }
+.field { height: 34px; border: 1px solid var(--line-strong); background: var(--panel); border-radius: 6px; padding: 0 10px; font-size: 13px; }
+.field:hover { border-color: var(--text-3); }
+input.field { width: 220px; }
+.filters .spacer { flex: 1; }
+.keys { font-size: 12px; color: var(--text-3); }
+kbd { font: 500 11px/1 var(--font); border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 4px; padding: 2px 5px; background: var(--panel); color: var(--text-2); }
+
+/* table */
+.table-wrap { background: var(--panel); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
+table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+thead th { position: sticky; top: 0; background: var(--sunken); color: var(--text-3); font-size: 12px; font-weight: 500; text-align: left; height: 36px; padding: 0 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+thead th button { border: 0; background: none; padding: 0; color: inherit; font: inherit; }
+thead th button:hover { color: var(--text); }
+tbody td { height: 44px; padding: 0 10px; border-bottom: 1px solid var(--line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--row-hover); }
+tbody tr[aria-selected="true"] { background: var(--row-sel); }
+tbody tr:last-child td { border-bottom: 0; }
+.c-check { width: 40px; }
+.c-order { width: 80px; }
+td.c-order { font-size: 13px; }
+.c-buyer { width: 92px; }
+.c-reason { width: 148px; }
+.c-amt { width: 104px; text-align: right; }
+.c-wait { width: 72px; text-align: right; }
+.c-status { width: 92px; }
+td .sub.line { display: block; line-height: 16px; }
+td.two { line-height: 18px; }
+td.c-amt, td.c-wait { text-align: right; }
+.sub { color: var(--text-3); font-size: 12px; }
+.prod { display: block; overflow: hidden; text-overflow: ellipsis; }
+.late { color: var(--danger); font-weight: 600; }
+.chip { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 11px; font-size: 12px; font-weight: 500; }
+.chip.pending { background: var(--accent-weak); color: var(--accent); }
+.chip.refunded { background: var(--ok-weak); color: var(--ok); }
+.chip.declined { background: var(--danger-weak); color: var(--danger); }
+input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); margin: 0; vertical-align: middle; cursor: pointer; }
+input[type="checkbox"]:disabled { cursor: not-allowed; opacity: .35; }
+
+/* empty, error, loading */
+.state { padding: 56px 20px; text-align: center; color: var(--text-2); }
+.state h2 { margin: 0 0 6px; font-size: 15px; font-weight: 600; color: var(--text); }
+.state p { margin: 0 0 14px; }
+.skel td span { display: block; height: 12px; border-radius: 4px; background: var(--line); animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .5; } }
+
+/* bulk bar */
+.bulk { position: sticky; bottom: 12px; margin-top: 10px; display: flex; align-items: center; gap: 12px; background: var(--text); color: var(--bg); border-radius: 8px; padding: 8px 8px 8px 16px; box-shadow: 0 6px 20px rgba(0,0,0,.18); }
+.bulk[hidden] { display: none; }
+.bulk .grow { flex: 1; }
+.bulk .ghost { background: transparent; border: 0; color: inherit; opacity: .8; height: 32px; padding: 0 10px; border-radius: 6px; }
+.bulk .ghost:hover { opacity: 1; }
+
+/* buttons */
+.btn { height: 32px; padding: 0 14px; border-radius: 6px; border: 1px solid var(--line-strong); background: var(--panel); font-size: 13px; font-weight: 500; transition: background-color .15s, border-color .15s, transform .1s; }
+.btn:hover { border-color: var(--text-3); }
+.btn:active { transform: scale(.96); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.btn.primary:hover { filter: brightness(1.06); }
+.btn.danger { color: var(--danger); }
+.btn.danger-solid { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+/* details */
+.detail { border-left: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }
+.detail .d-head { padding: 16px 18px 12px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.detail h2 { margin: 0; font-size: 16px; font-weight: 600; line-height: 24px; }
+.detail .close { display: none; border: 0; background: none; width: 32px; height: 32px; border-radius: 6px; font-size: 18px; color: var(--text-2); }
+.d-body { padding: 14px 18px; display: flex; flex-direction: column; gap: 16px; flex: 1; }
+.d-amt { display: flex; align-items: baseline; gap: 8px; }
+.d-amt strong { font-size: 24px; font-weight: 600; line-height: 1.2; }
+dl.kv { margin: 0; display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 6px 10px; font-size: 13px; }
+dl.kv dt { color: var(--text-3); }
+dl.kv dd { margin: 0; overflow-wrap: anywhere; }
+.note { background: var(--sunken); border-radius: 6px; padding: 10px 12px; font-size: 13px; color: var(--text-2); }
+.note b { display: block; color: var(--text); font-weight: 600; margin-bottom: 2px; }
+.sec-t { font-size: 12px; color: var(--text-3); margin: 0 0 6px; }
+.timeline { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+.timeline li { display: grid; grid-template-columns: 128px 1fr; gap: 8px; padding: 3px 0; }
+.timeline li span:first-child { color: var(--text-3); }
+.d-foot { position: sticky; bottom: 0; background: var(--panel); border-top: 1px solid var(--line); padding: 12px 18px; display: flex; gap: 8px; flex-wrap: wrap; }
+.d-foot .btn { flex: 1; height: 36px; }
+.reject { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.reject textarea { min-height: 64px; resize: vertical; border: 1px solid var(--line-strong); border-radius: 6px; padding: 8px 10px; background: var(--panel); font-size: 13px; }
+.reject .row { display: flex; gap: 8px; }
+.reject .err { color: var(--danger); font-size: 12px; margin: 0; }
+.empty-detail { margin: auto; padding: 40px 24px; text-align: center; color: var(--text-3); }
+
+/* dialog and toast */
+dialog { border: 0; border-radius: 10px; padding: 20px; width: min(420px, calc(100vw - 32px)); background: var(--panel); color: var(--text); box-shadow: 0 12px 40px rgba(0,0,0,.25); }
+dialog::backdrop { background: var(--overlay); }
+dialog h2 { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
+dialog p { margin: 0 0 16px; color: var(--text-2); }
+dialog .row { display: flex; justify-content: flex-end; gap: 8px; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 9px 16px; border-radius: 8px; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.2); }
+.toast[hidden] { display: none; }
+
+.demo { margin-top: 18px; display: flex; gap: 10px; align-items: center; font-size: 12px; color: var(--text-3); flex-wrap: wrap; }
+.demo select { height: 28px; font-size: 12px; }
+
+/* narrow: navigation on top, table as a list, details full screen */
+@media (max-width: 1100px) {
+  .main { grid-template-columns: minmax(0, 1fr); }
+  .detail { position: fixed; inset: 0 0 0 auto; width: min(420px, 100vw); z-index: 20; box-shadow: -8px 0 30px rgba(0,0,0,.18); transform: translateX(100%); transition: transform .2s ease; }
+  .detail:not(.open) { visibility: hidden; box-shadow: none; }
+  .detail { transition: transform .2s ease, visibility 0s .2s; }
+  .detail.open { transform: none; transition: transform .2s ease; }
+  .detail .close { display: inline-grid; place-items: center; }
+}
+@media (max-width: 760px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .nav { position: static; height: auto; flex-direction: row; align-items: center; overflow-x: auto; padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .nav .shop { padding: 0 10px 0 0; white-space: nowrap; }
+  .nav a { white-space: nowrap; flex: none; gap: 6px; }
+  .nav .grow, .nav .me { display: none; }
+  .list { padding: 12px 12px 20px; }
+  .summary { gap: 12px; flex-wrap: wrap; }
+  input.field { width: 100%; }
+  .filters .field { flex: 1 1 140px; }
+  .tabs { width: 100%; }
+  .tabs button { flex: 1; padding: 0 6px; }
+  .keys { display: none; }
+  thead { display: none; }
+  table, tbody { display: block; }
+  tbody tr { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; grid-template-areas: "ck order amt" "ck prod prod" "ck meta wait"; gap: 2px 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  tbody td { height: auto; padding: 0; border: 0; }
+  td.c-check { grid-area: ck; padding-top: 2px; }
+  td.c-order { grid-area: order; font-weight: 600; }
+  td.c-amt { grid-area: amt; }
+  td.c-prod { grid-area: prod; }
+  td.c-buyer { grid-area: meta; color: var(--text-3); font-size: 12px; }
+  td.c-wait { grid-area: wait; font-size: 12px; }
+  td.c-reason, td.c-status { display: none; }
+  .detail { width: 100vw; }
+  .bulk { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="nav" aria-label="Admin navigation">
+    <div class="shop">Little Oak Goods</div>
+    <a href="#">Orders</a>
+    <a href="#" aria-current="page">Refunds <span class="count num" id="nav-count"></span></a>
+    <a href="#">Products</a>
+    <a href="#">Customers</a>
+    <a href="#">Settings</a>
+    <div class="grow"></div>
+    <div class="me">Support: Maya Lin</div>
+  </nav>
+
+  <div class="main">
+    <section class="list" aria-labelledby="page-title">
+      <div class="head">
+        <h1 id="page-title">Refunds</h1>
+        <div class="summary" id="summary"></div>
+      </div>
+
+      <div class="filters">
+        <div class="tabs" role="group" aria-label="Filter by status" id="tabs"></div>
+        <input class="field" id="q" type="search" placeholder="Order, buyer or product" aria-label="Search">
+        <select class="field" id="reason" aria-label="Refund reason"><option value="">All reasons</option></select>
+        <select class="field" id="channel" aria-label="Payment method"><option value="">All payment methods</option><option>Card</option><option>PayPal</option></select>
+        <span class="spacer"></span>
+        <span class="keys"><kbd>↑</kbd> <kbd>↓</kbd> move　<kbd>Space</kbd> select　<kbd>/</kbd> search</span>
+      </div>
+
+      <div class="table-wrap">
+        <table aria-describedby="page-title">
+          <thead><tr>
+            <th class="c-check"><input type="checkbox" id="check-all" aria-label="Select all pending refunds in this list"></th>
+            <th class="c-order">Order</th>
+            <th class="c-prod">Product</th>
+            <th class="c-buyer">Buyer</th>
+            <th class="c-reason">Reason</th>
+            <th class="c-amt"><button type="button" id="sort-amt">Refund</button></th>
+            <th class="c-wait"><button type="button" id="sort-wait" aria-label="Sort by time waiting">Waiting ↓</button></th>
+            <th class="c-status">Status</th>
+          </tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <div id="state"></div>
+      </div>
+
+      <div class="bulk" id="bulk" hidden>
+        <span id="bulk-text" class="num"></span>
+        <span class="grow"></span>
+        <button type="button" class="ghost" id="bulk-clear">Clear selection</button>
+        <button type="button" class="btn primary" id="bulk-ok">Approve refunds</button>
+      </div>
+
+      <div class="demo">
+        <label>Demo state (remove in production)
+          <select class="field" id="demo-state">
+            <option value="ok">Normal</option><option value="loading">Loading</option><option value="error">Load error</option><option value="empty">No refunds at all</option>
+          </select>
+        </label>
+        <span>Demo data; actions send no requests. The shop, buyers and orders are fictional.</span>
+      </div>
+    </section>
+
+    <aside class="detail" id="detail" aria-label="Refund details"></aside>
+  </div>
+</div>
+
+<dialog id="confirm">
+  <h2 id="cf-title"></h2>
+  <p id="cf-text"></p>
+  <div class="row"><button type="button" class="btn" id="cf-cancel">Go back</button><button type="button" class="btn primary" id="cf-ok">Refund</button></div>
+</dialog>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+/* ===== Mock data: fields follow an assumed GET /api/refunds response. Delete once the API is connected ===== */
+var NOW = new Date('2026-10-26T18:00:00-05:00'); /* fixed "now" so waiting times are reproducible */
+var MOCK_REFUNDS = [
+  { id: 'r_9012', order_no: '#48213', ordered_at: '2026-10-22T19:14:00-05:00', created_at: '2026-10-24T11:40:00-05:00', buyer: 'Dana K.', product: 'Pour-over paper filters, size 01, 100 count', paid_cents: 899, refund_cents: 899, reason: 'Damaged', note: 'The box was crushed and half the filters are creased.', channel: 'Card', shipped: true, received: true, evidence_count: 3, status: 'pending' },
+  { id: 'r_9015', order_no: '#48260', ordered_at: '2026-10-25T08:51:00-05:00', created_at: '2026-10-25T09:05:00-05:00', buyer: 'Luis M.', product: 'Cast iron skillet, 6.5 in, pre-seasoned', paid_cents: 3400, refund_cents: 3400, reason: 'Changed my mind', note: '', channel: 'PayPal', shipped: false, received: false, evidence_count: 0, status: 'pending' },
+  { id: 'r_9017', order_no: '#48262', ordered_at: '2026-10-19T12:30:00-05:00', created_at: '2026-10-25T10:12:00-05:00', buyer: 'Priya S.', product: 'Linen tablecloth 55 × 70 in, oat, with two matching placemats and a storage bag', paid_cents: 6800, refund_cents: 2000, reason: 'Not as described', note: 'Much darker than the photos. Happy to keep it for a $20 partial refund.', channel: 'Card', shipped: true, received: true, evidence_count: 2, status: 'pending' },
+  { id: 'r_9019', order_no: '#48271', ordered_at: '2026-10-21T16:02:00-05:00', created_at: '2026-10-25T15:31:00-05:00', buyer: 'J. Okafor', product: 'Glass storage jars, 25 oz, set of 3', paid_cents: 2900, refund_cents: 2900, reason: 'Damaged', note: 'One lid is cracked.', channel: 'PayPal', shipped: true, received: true, evidence_count: 1, status: 'pending' },
+  { id: 'r_9021', order_no: '#48288', ordered_at: '2026-10-20T10:44:00-05:00', created_at: '2026-10-26T08:20:00-05:00', buyer: 'Sam W.', product: 'Maple cutting board, large, 15 × 10 in', paid_cents: 4500, refund_cents: 4500, reason: 'Wrong item', note: 'I received the small one.', channel: 'Card', shipped: true, received: true, evidence_count: 2, status: 'pending' },
+  { id: 'r_9022', order_no: '#48291', ordered_at: '2026-10-26T09:30:00-05:00', created_at: '2026-10-26T09:41:00-05:00', buyer: 'Hannah B.', product: 'Linen apron, forest green', paid_cents: 3200, refund_cents: 3200, reason: 'Changed my mind', note: 'Ordered the wrong color. If it has not shipped, please just refund.', channel: 'PayPal', shipped: false, received: false, evidence_count: 0, status: 'pending' },
+  { id: 'r_9023', order_no: '#48297', ordered_at: '2026-10-23T14:05:00-05:00', created_at: '2026-10-26T11:06:00-05:00', buyer: 'Chen Y.', product: 'Pour-over paper filters, size 02, 100 count', paid_cents: 899, refund_cents: 899, reason: 'Wrong item', note: 'I ordered size 01.', channel: 'Card', shipped: true, received: false, evidence_count: 0, status: 'pending' },
+  { id: 'r_9024', order_no: '#48302', ordered_at: '2026-10-22T07:58:00-05:00', created_at: '2026-10-26T13:52:00-05:00', buyer: 'Rosa D.', product: 'Stoneware mug, 12 oz, mist white', paid_cents: 1800, refund_cents: 1800, reason: 'Damaged', note: 'The handle broke off.', channel: 'PayPal', shipped: true, received: true, evidence_count: 4, status: 'pending' },
+  { id: 'r_9025', order_no: '#48310', ordered_at: '2026-10-26T15:40:00-05:00', created_at: '2026-10-26T16:12:00-05:00', buyer: 'Tom R.', product: 'Bamboo dish rack', paid_cents: 2400, refund_cents: 2400, reason: 'Changed my mind', note: '', channel: 'Card', shipped: false, received: false, evidence_count: 0, status: 'pending' },
+  { id: 'r_9001', order_no: '#48102', ordered_at: '2026-10-14T11:20:00-05:00', created_at: '2026-10-20T10:10:00-05:00', buyer: 'Grace P.', product: 'Cast iron skillet, 6.5 in, pre-seasoned', paid_cents: 3400, refund_cents: 3400, reason: 'Damaged', note: 'There is a chip in the rim.', channel: 'Card', shipped: true, received: true, evidence_count: 2, status: 'refunded', handled_by: 'Maya Lin', handled_at: '2026-10-20T14:22:00-05:00' },
+  { id: 'r_9003', order_no: '#47811', ordered_at: '2026-09-12T09:00:00-05:00', created_at: '2026-10-21T14:10:00-05:00', buyer: 'Ben T.', product: 'Linen tablecloth 55 × 70 in, oat', paid_cents: 6800, refund_cents: 6800, reason: 'Changed my mind', note: 'Used it for a few weeks, would like another color.', channel: 'PayPal', shipped: true, received: true, evidence_count: 0, status: 'declined', handled_by: 'Maya Lin', handled_at: '2026-10-21T16:05:00-05:00', reject_reason: 'Outside the 30-day return window' },
+  { id: 'r_9004', order_no: '#48150', ordered_at: '2026-10-17T18:12:00-05:00', created_at: '2026-10-22T09:20:00-05:00', buyer: 'Aiko N.', product: 'Glass storage jars, 25 oz, set of 3', paid_cents: 2900, refund_cents: 970, reason: 'Damaged', note: 'One jar arrived broken; refunding one is fine.', channel: 'Card', shipped: true, received: true, evidence_count: 1, status: 'refunded', handled_by: 'Owen Hart', handled_at: '2026-10-22T10:01:00-05:00' },
+  { id: 'r_9006', order_no: '#48166', ordered_at: '2026-10-18T13:40:00-05:00', created_at: '2026-10-22T17:30:00-05:00', buyer: 'Mark L.', product: 'Linen apron, oat', paid_cents: 3200, refund_cents: 3200, reason: 'Not as described', note: '', channel: 'PayPal', shipped: true, received: true, evidence_count: 0, status: 'declined', handled_by: 'Owen Hart', handled_at: '2026-10-23T09:12:00-05:00', reject_reason: 'No evidence provided; asked the buyer for photos' },
+  { id: 'r_9008', order_no: '#48174', ordered_at: '2026-10-19T08:03:00-05:00', created_at: '2026-10-23T08:45:00-05:00', buyer: 'Elif Y.', product: 'Maple cutting board, small, 12 × 8 in', paid_cents: 2900, refund_cents: 2900, reason: 'Wrong item', note: '', channel: 'Card', shipped: true, received: true, evidence_count: 1, status: 'refunded', handled_by: 'Maya Lin', handled_at: '2026-10-23T11:30:00-05:00' },
+  { id: 'r_9010', order_no: '#48201', ordered_at: '2026-10-23T19:40:00-05:00', created_at: '2026-10-23T19:58:00-05:00', buyer: 'Noah F.', product: 'Stoneware mug, 12 oz, mist white, set of 2', paid_cents: 3600, refund_cents: 3600, reason: 'Changed my mind', note: 'Has not shipped yet.', channel: 'PayPal', shipped: false, received: false, evidence_count: 0, status: 'refunded', handled_by: 'Owen Hart', handled_at: '2026-10-24T08:40:00-05:00' }
+];
+
+/* Decline reasons (my assumption, see placeholders) */
+var REJECT_REASONS = ['Outside the 30-day return window', 'No evidence provided; asked the buyer for photos', 'Item has been used and cannot be resold', 'Other (explain in the note)'];
+var LATE_HOURS = 24;
+
+(function () {
+  var data = MOCK_REFUNDS.map(function (r) { return Object.assign({}, r); });
+  var STATUS = { pending: 'Pending', refunded: 'Refunded', declined: 'Declined' };
+  var $ = function (id) { return document.getElementById(id); };
+  var rowsEl = $('rows'), stateEl = $('state'), detail = $('detail');
+  var params = new URLSearchParams(location.search);
+  var st = { status: params.get('status') || 'pending', q: params.get('q') || '', reason: params.get('reason') || '', channel: params.get('channel') || '', sort: params.get('sort') || 'wait', active: null, sel: new Set(), demo: 'ok' };
+
+  var yuan = function (c) { return '$' + (c / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+  var hours = function (r) { return (NOW - new Date(r.created_at)) / 36e5; };
+  var waitText = function (h) { return h < 1 ? Math.max(1, Math.round(h * 60)) + ' min' : h < 48 ? Math.floor(h) + ' h' : Math.floor(h / 24) + ' days'; };
+  var dt = function (s) { var d = new Date(new Date(s).getTime() - 5 * 36e5); /* shown in the shop's time zone, UTC-5 */ var p = function (n) { return String(n).padStart(2, '0'); };
+    return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getUTCMonth()] + ' ' + d.getUTCDate() + ', ' + p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()); };
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+
+  /* reason options come from the data itself */
+  Array.from(new Set(data.map(function (r) { return r.reason; }))).forEach(function (x) { var o = document.createElement('option'); o.textContent = x; $('reason').appendChild(o); });
+  $('q').value = st.q; $('reason').value = st.reason; $('channel').value = st.channel;
+
+  function filtered(ignoreStatus) {
+    var q = st.q.trim().toLowerCase();
+    return data.filter(function (r) {
+      if (!ignoreStatus && st.status !== 'all' && r.status !== st.status) return false;
+      if (st.reason && r.reason !== st.reason) return false;
+      if (st.channel && r.channel !== st.channel) return false;
+      if (q && (r.order_no + r.buyer + r.product).toLowerCase().indexOf(q) < 0) return false;
+      return true;
+    }).sort(function (a, b) { return st.sort === 'amt' ? b.refund_cents - a.refund_cents : hours(b) - hours(a); });
+  }
+  function syncUrl() {
+    var p = new URLSearchParams();
+    if (st.status !== 'pending') p.set('status', st.status);
+    ['q', 'reason', 'channel'].forEach(function (k) { if (st[k]) p.set(k, st[k]); });
+    if (st.sort !== 'wait') p.set('sort', st.sort);
+    try { history.replaceState(null, '', p.toString() ? '?' + p : location.pathname); } catch (e) {}
+  }
+
+  function renderSummary() {
+    var pend = data.filter(function (r) { return r.status === 'pending'; });
+    var late = pend.filter(function (r) { return hours(r) > LATE_HOURS; });
+    var sum = pend.reduce(function (s, r) { return s + r.refund_cents; }, 0);
+    $('summary').innerHTML = '<span><b class="num">' + pend.length + '</b> pending</span>' +
+      '<span>Total <b class="num">' + yuan(sum) + '</b></span>' +
+      '<span class="late"><b class="num">' + late.length + '</b> waiting over ' + LATE_HOURS + ' h</span>';
+    $('nav-count').textContent = pend.length || '';
+    $('nav-count').hidden = !pend.length;
+    var base = filtered(true);
+    var counts = { pending: 0, refunded: 0, declined: 0 }; base.forEach(function (r) { counts[r.status]++; });
+    $('tabs').innerHTML = [['pending', 'Pending'], ['refunded', 'Refunded'], ['declined', 'Declined'], ['all', 'All']].map(function (t) {
+      var n = t[0] === 'all' ? base.length : counts[t[0]];
+      return '<button type="button" data-s="' + t[0] + '" aria-pressed="' + (st.status === t[0]) + '">' + t[1] + '<span class="c num">' + n + '</span></button>';
+    }).join('');
+  }
+
+  function renderRows() {
+    stateEl.innerHTML = '';
+    if (st.demo === 'loading') {
+      rowsEl.innerHTML = Array.from({ length: 6 }, function () { return '<tr class="skel"><td></td>' + '<td><span></span></td>'.repeat(7) + '</tr>'; }).join('');
+      return;
+    }
+    if (st.demo === 'error') {
+      rowsEl.innerHTML = '';
+      stateEl.innerHTML = '<div class="state"><h2>The refund list did not load</h2><p>The server timed out (GET /api/refunds). Refunds already handled are not affected. Try again.</p><button type="button" class="btn" data-retry>Reload</button></div>';
+      return;
+    }
+    var list = st.demo === 'empty' ? [] : filtered();
+    if (!list.length) {
+      rowsEl.innerHTML = '';
+      var anyFilter = st.q || st.reason || st.channel;
+      stateEl.innerHTML = st.demo === 'empty'
+        ? '<div class="state"><h2>No refund requests yet</h2><p>When a buyer asks for a refund it shows up here, and the pending count appears in the navigation.</p></div>'
+        : anyFilter
+          ? '<div class="state"><h2>No refunds match</h2><p>Try another search, or clear the filters.</p><button type="button" class="btn" data-clear>Clear filters</button></div>'
+          : '<div class="state"><h2>' + (st.status === 'pending' ? 'All pending refunds are handled' : 'Nothing here yet') + '</h2><p>' + (st.status === 'pending' ? 'New requests will appear here.' : '') + '</p></div>';
+      return;
+    }
+    rowsEl.innerHTML = list.map(function (r) {
+      var h = hours(r), late = r.status === 'pending' && h > LATE_HOURS, part = r.refund_cents < r.paid_cents;
+      return '<tr data-id="' + r.id + '" aria-selected="' + (st.active === r.id) + '" tabindex="-1">' +
+        '<td class="c-check"><input type="checkbox" aria-label="Select ' + r.order_no + '" ' + (r.status !== 'pending' ? 'disabled' : '') + (st.sel.has(r.id) ? ' checked' : '') + '></td>' +
+        '<td class="c-order num">' + r.order_no + '</td>' +
+        '<td class="c-prod"><span class="prod" title="' + esc(r.product) + '">' + esc(r.product) + '</span></td>' +
+        '<td class="c-buyer">' + esc(r.buyer) + '</td>' +
+        '<td class="c-reason two">' + r.reason + (r.shipped ? '' : '<span class="sub line">Not shipped</span>') + '</td>' +
+        '<td class="c-amt num two">' + yuan(r.refund_cents) + (part ? '<div class="sub">Paid ' + yuan(r.paid_cents) + '</div>' : '') + '</td>' +
+        '<td class="c-wait num' + (late ? ' late' : '') + '" title="Requested ' + dt(r.created_at) + '">' + (r.status === 'pending' ? waitText(h) : '—') + '</td>' +
+        '<td class="c-status"><span class="chip ' + r.status + '">' + STATUS[r.status] + '</span></td></tr>';
+    }).join('');
+  }
+  function renderBulk() {
+    var ids = Array.from(st.sel), sum = ids.reduce(function (s, id) { return s + byId(id).refund_cents; }, 0);
+    $('bulk').hidden = !ids.length;
+    $('bulk-text').textContent = ids.length + ' selected, ' + yuan(sum) + ' in total';
+    var visible = filtered().filter(function (r) { return r.status === 'pending'; });
+    var all = $('check-all');
+    all.disabled = !visible.length;
+    all.checked = visible.length > 0 && visible.every(function (r) { return st.sel.has(r.id); });
+    all.indeterminate = !all.checked && visible.some(function (r) { return st.sel.has(r.id); });
+  }
+  function byId(id) { return data.find(function (r) { return r.id === id; }); }
+
+  function renderDetail() {
+    var r = st.active && byId(st.active);
+    if (!r) { detail.innerHTML = '<div class="empty-detail">Pick a refund on the left to see its details.</div>'; return; }
+    var part = r.refund_cents < r.paid_cents;
+    var tl = [['Ordered', dt(r.ordered_at)], ['Shipping', r.shipped ? (r.received ? 'Delivered' : 'Shipped, not delivered') : 'Not shipped'], ['Refund requested', dt(r.created_at)]];
+    if (r.handled_at) tl.push([r.status === 'refunded' ? 'Approved' : 'Declined', dt(r.handled_at) + ', ' + r.handled_by]);
+    var foot = r.status === 'pending'
+      ? '<button type="button" class="btn danger" data-act="reject-open">Decline</button><button type="button" class="btn primary" data-act="approve">Refund ' + yuan(r.refund_cents) + '</button>'
+      : '<span class="sub">' + (r.status === 'refunded' ? 'Returned to ' + r.channel + '; this cannot be undone.' : 'Declined: ' + esc(r.reject_reason)) + '</span>';
+    detail.innerHTML =
+      '<div class="d-head"><div><h2 class="num">' + r.order_no + '</h2><div class="sub">' + esc(r.buyer) + '　' + r.channel + '</div></div>' +
+      '<button type="button" class="close" data-act="close" aria-label="Close details">×</button></div>' +
+      '<div class="d-body">' +
+        '<div><div class="d-amt"><strong class="num">' + yuan(r.refund_cents) + '</strong><span class="chip ' + r.status + '">' + STATUS[r.status] + '</span></div>' +
+          (part ? '<div class="sub num">Partial refund; paid ' + yuan(r.paid_cents) + '</div>' : '<div class="sub">Full refund</div>') + '</div>' +
+        '<dl class="kv"><dt>Product</dt><dd>' + esc(r.product) + '</dd><dt>Reason</dt><dd>' + r.reason + '</dd>' +
+          '<dt>Type</dt><dd>' + (r.shipped ? (r.received ? 'Return and refund; the buyer sends it back' : 'Shipped, not delivered; stop the parcel, then refund') : 'Refund only; not shipped') + '</dd>' +
+          '<dt>Evidence</dt><dd>' + (r.evidence_count ? r.evidence_count + ' photo' + (r.evidence_count > 1 ? 's' : '') + ' from the buyer (not loaded in this demo)' : 'None') + '</dd></dl>' +
+        '<div class="note"><b>Buyer\'s note</b>' + (r.note ? esc(r.note) : 'The buyer did not write a note.') + '</div>' +
+        '<div><p class="sec-t">Progress</p><ul class="timeline">' + tl.map(function (t) { return '<li><span>' + t[0] + '</span><span class="num">' + t[1] + '</span></li>'; }).join('') + '</ul></div>' +
+      '</div>' +
+      '<div class="d-foot" id="d-foot">' + foot + '</div>';
+  }
+  function openRejectForm() {
+    $('d-foot').innerHTML = '<div class="reject"><label class="sub" for="rj">Reason for declining (the buyer will see it)</label>' +
+      '<select class="field" id="rj"><option value="">Choose a reason</option>' + REJECT_REASONS.map(function (x) { return '<option>' + x + '</option>'; }).join('') + '</select>' +
+      '<textarea id="rj-note" placeholder="Note, required for Other" aria-label="Note"></textarea><p class="err" id="rj-err" hidden></p>' +
+      '<div class="row"><button type="button" class="btn" data-act="reject-cancel" style="flex:1">Cancel</button><button type="button" class="btn danger-solid" data-act="reject" style="flex:1">Decline refund</button></div></div>';
+    $('rj').focus();
+  }
+
+  function render() { renderSummary(); renderRows(); renderBulk(); renderDetail(); syncUrl(); }
+
+  var toastT;
+  function toast(msg) { var t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 3000); }
+
+  /* An approved refund cannot be undone, so this step asks for confirmation */
+  var pending = [];
+  function askApprove(ids) {
+    pending = ids;
+    var sum = ids.reduce(function (s, id) { return s + byId(id).refund_cents; }, 0);
+    $('cf-title').textContent = ids.length > 1 ? 'Approve these ' + ids.length + ' refunds?' : 'Approve this refund?';
+    $('cf-text').textContent = yuan(sum) + ' will go back to the buyer\'s original payment method. Once sent, a refund cannot be undone.';
+    $('cf-ok').textContent = 'Refund ' + yuan(sum);
+    $('confirm').showModal();
+  }
+  $('cf-cancel').onclick = function () { $('confirm').close(); };
+  $('cf-ok').onclick = function () {
+    /* TODO: POST /api/refunds/:id/approve, one by one, and show any that fail */
+    pending.forEach(function (id) { var r = byId(id); r.status = 'refunded'; r.handled_by = 'Maya Lin'; r.handled_at = NOW.toISOString(); st.sel.delete(id); });
+    $('confirm').close();
+    toast(pending.length > 1 ? pending.length + ' refunds approved' : 'Refund approved; the money goes back the way it came');
+    if (st.status === 'pending') st.active = null;
+    render();
+  };
+
+  /* events */
+  $('tabs').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; st.status = b.dataset.s; st.sel.clear(); render(); });
+  var qT; $('q').addEventListener('input', function () { clearTimeout(qT); qT = setTimeout(function () { st.q = $('q').value; render(); }, 150); });
+  $('reason').onchange = function () { st.reason = this.value; render(); };
+  $('channel').onchange = function () { st.channel = this.value; render(); };
+  $('sort-amt').onclick = function () { st.sort = 'amt'; this.textContent = 'Refund ↓'; $('sort-wait').textContent = 'Waiting'; render(); };
+  $('sort-wait').onclick = function () { st.sort = 'wait'; this.textContent = 'Waiting ↓'; $('sort-amt').textContent = 'Refund'; render(); };
+  if (st.sort === 'amt') $('sort-amt').click();
+
+  rowsEl.addEventListener('click', function (e) {
+    var tr = e.target.closest('tr[data-id]'); if (!tr) return;
+    var id = tr.dataset.id;
+    if (e.target.matches('input[type="checkbox"]')) { e.target.checked ? st.sel.add(id) : st.sel.delete(id); renderBulk(); return; }
+    if (e.target.closest('td.c-check')) return;
+    st.active = id; render(); detail.classList.add('open');
+  });
+  $('check-all').onchange = function () {
+    var vis = filtered().filter(function (r) { return r.status === 'pending'; });
+    vis.forEach(function (r) { this.checked ? st.sel.add(r.id) : st.sel.delete(r.id); }, this);
+    renderRows(); renderBulk();
+  };
+  $('bulk-clear').onclick = function () { st.sel.clear(); renderRows(); renderBulk(); };
+  $('bulk-ok').onclick = function () { askApprove(Array.from(st.sel)); };
+  stateEl.addEventListener('click', function (e) {
+    if (e.target.matches('[data-clear]')) { st.q = st.reason = st.channel = ''; $('q').value = ''; $('reason').value = ''; $('channel').value = ''; render(); }
+    if (e.target.matches('[data-retry]')) { $('demo-state').value = 'ok'; st.demo = 'ok'; render(); }
+  });
+  detail.addEventListener('click', function (e) {
+    var a = e.target.closest('[data-act]'); if (!a) return;
+    var act = a.dataset.act, r = byId(st.active);
+    if (act === 'close') detail.classList.remove('open');
+    if (act === 'approve') askApprove([r.id]);
+    if (act === 'reject-open') openRejectForm();
+    if (act === 'reject-cancel') renderDetail();
+    if (act === 'reject') {
+      var why = $('rj').value, note = $('rj-note').value.trim(), err = $('rj-err');
+      if (!why) { err.textContent = 'Choose a reason; the buyer will see it.'; err.hidden = false; $('rj').focus(); return; }
+      if (why.indexOf('Other') === 0 && !note) { err.textContent = 'For Other, explain the reason in the note.'; err.hidden = false; $('rj-note').focus(); return; }
+      /* TODO: POST /api/refunds/:id/decline */
+      r.status = 'declined'; r.reject_reason = why.indexOf('Other') === 0 ? note : why; r.handled_by = 'Maya Lin'; r.handled_at = NOW.toISOString();
+      st.sel.delete(r.id); toast('Declined; the buyer will get your reason'); render();
+    }
+  });
+  $('demo-state').onchange = function () { st.demo = this.value; render(); };
+
+  /* keyboard: up/down to move, Space to select, / to search, Esc to close details */
+  document.addEventListener('keydown', function (e) {
+    if (e.target.matches('input:not([type="checkbox"]), select, textarea') || $('confirm').open) return;
+    var list = filtered(), i = list.findIndex(function (r) { return r.id === st.active; });
+    if (e.key === '/') { e.preventDefault(); $('q').focus(); }
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!list.length) return; e.preventDefault();
+      i = e.key === 'ArrowDown' ? Math.min(list.length - 1, i + 1) : Math.max(0, i - 1);
+      st.active = list[i].id; render();
+      var tr = rowsEl.querySelector('tr[data-id="' + st.active + '"]'); tr && tr.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === ' ' && st.active) {
+      var r = byId(st.active); if (r.status !== 'pending') return; e.preventDefault();
+      st.sel.has(r.id) ? st.sel.delete(r.id) : st.sel.add(r.id); renderRows(); renderBulk();
+    } else if (e.key === 'Escape') detail.classList.remove('open');
+  });
+
+  if (matchMedia('(min-width: 1101px)').matches) { var first = filtered()[0]; st.active = first ? first.id : null; }
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,6 +1,8 @@
-# Screenshot review checklist
+# Review checklist
 
 After taking screenshots, look at them with these questions. The goal is to find problems, not to tick boxes.
+
+If you cannot take screenshots (the model cannot read images, or there is no browser), go through the same questions against the code, and say in your reply that you have not seen it in a browser.
 
 ## At a glance
 - Cover the product name: could this page belong to any other product? If so, which layer is the problem: color, type, structure or copy?
@@ -10,6 +12,8 @@ After taking screenshots, look at them with these questions. The goal is to find
 - The other way round: has the page been hollowed out? After removing decoration, did you add substance (type contrast, whole fields of color, real imagery, full content)?
 - Does the page use the things from step 2 that belong only to this subject?
 - Does every section make a claim? Were sections without one deleted?
+- Put it next to your other recent projects with the names covered: do they look the same (white, neutral grey, pill buttons, thin-bordered panels)?
+- If you used a strong concept: does every device map to content? Can code, numbers and buttons still be read and hit accurately?
 
 ## AI flavor (see references/ai-tells.md)
 - Does it hit one of the style-costume combinations?
@@ -33,7 +37,8 @@ After taking screenshots, look at them with these questions. The goal is to find
 - Does the interface show any feature the project does not have?
 - Any hard-coded mock data posing as real data? Any buttons or forms that look like they work but are not connected?
 - Does the new UI use the project's existing components and style variables?
-- Were professional facts (technical, standards, data) checked?
+- Were professional facts (technical, standards, data) checked? Is anything uncertain listed under "Unverified" in the placeholder list?
+- Do the numbers on the page agree with each other?
 - Is the placeholder list attached to the reply?
 - Does the example data look real? Does very long content break the layout?
 - Do button labels say what will happen?

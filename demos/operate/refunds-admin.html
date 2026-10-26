@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#16181b" media="(prefers-color-scheme: dark)">
+<title>退款审核 - 店铺后台</title>
+<!--
+【模式】操作。店铺客服每天打开这个页面几十次，要做的决定只有一个：这笔退款同意还是拒绝。
+所以：信息密度优先，一屏看到尽量多的待处理退款；等待时间最显眼，因为超时是真正的风险；详情放在右侧，不跳页。
+
+【只属于这个后台的东西】
+1. 三种状态：待处理、已退款、已拒绝（来自需求）
+2. 退款原因是买家从固定选项里选的，再加一段自己写的说明
+3. 有的订单还没发货（仅退款），有的已签收（退货退款），处理方式不同
+4. 部分退款：退款金额可以小于实付金额
+5. 支付渠道：微信支付、支付宝，钱原路退回
+6. 同意退款不能撤回，所以只有这一步要二次确认；拒绝必须写理由，买家会看到
+7. 客服关心的是"等了多久"，超过 24 小时标红（这是我的假设，见占位清单）
+
+【明暗】做了深色。客服会在晚上值班，深色单独设计，不是反色。
+
+【占位清单】
+- 模拟数据：本文件里的 MOCK_REFUNDS，字段按假设的 GET /api/refunds 返回结构
+- 未接通：同意、拒绝、批量同意只改页面里的数据，不发请求（代码里标了 TODO）
+- 未接通：左侧导航除"退款审核"外的链接，买家上传的凭证图片
+- 演示用：页脚的"演示状态"切换只用来查看加载中、出错、无数据三种状态，正式版应删除
+- 我的假设：超过 24 小时未处理算超时；拒绝理由的四个选项
+- 示例内容：店铺、买家、订单都是虚构的
+-->
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f4f5f7;
+  --panel: #ffffff;
+  --sunken: #f7f8fa;
+  --text: #1f2329;
+  --text-2: #4e5661;
+  --text-3: #8a919c;
+  --line: #e3e5e9;
+  --line-strong: #cfd3d9;
+  --accent: #1f6feb;
+  --accent-weak: #e8f0fe;
+  --accent-text: #ffffff;
+  --danger: #c4362b;
+  --danger-weak: #fdecea;
+  --ok: #1a7f45;
+  --ok-weak: #e6f4ec;
+  --warn: #9a5b00;
+  --row-hover: #f7f8fa;
+  --row-sel: #eef4ff;
+  --shadow: 0 0 0 1px rgba(15, 20, 30, .06), 0 2px 6px rgba(15, 20, 30, .05);
+  --overlay: rgba(15, 20, 30, .32);
+  --font: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #16181b;
+    --panel: #1e2125;
+    --sunken: #191b1e;
+    --text: #e6e8eb;
+    --text-2: #b0b6be;
+    --text-3: #7d848e;
+    --line: #2c3036;
+    --line-strong: #3a3f46;
+    --accent: #5b9cf5;
+    --accent-weak: #1f2d42;
+    --accent-text: #0e1420;
+    --danger: #f07b70;
+    --danger-weak: #3a2222;
+    --ok: #5cc48a;
+    --ok-weak: #1b3326;
+    --warn: #e0a54a;
+    --row-hover: #23262b;
+    --row-sel: #1f2a3a;
+    --shadow: 0 0 0 1px rgba(255, 255, 255, .06);
+    --overlay: rgba(0, 0, 0, .55);
+  }
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); scrollbar-color: var(--line-strong) transparent; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 400 14px/1.57 var(--font); -webkit-font-smoothing: antialiased; }
+::selection { background: var(--accent-weak); }
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* 骨架：左导航、主区、右详情 */
+.app { display: grid; grid-template-columns: 208px minmax(0, 1fr); min-height: 100vh; }
+.nav { background: var(--panel); border-right: 1px solid var(--line); padding: 14px 10px; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 2px; }
+.nav .shop { font-weight: 600; font-size: 15px; padding: 6px 10px 14px; }
+.nav a { display: flex; justify-content: space-between; align-items: center; height: 36px; padding: 0 10px; border-radius: 6px; color: var(--text-2); }
+.nav a:hover { background: var(--row-hover); color: var(--text); }
+.nav a[aria-current="page"] { background: var(--accent-weak); color: var(--accent); font-weight: 600; }
+.nav .count { font-size: 12px; min-width: 20px; height: 18px; padding: 0 6px; border-radius: 9px; background: var(--danger); color: #fff; display: inline-grid; place-items: center; font-weight: 600; }
+.nav .grow { flex: 1; }
+.nav .me { font-size: 13px; color: var(--text-3); padding: 8px 10px; }
+
+.main { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) 380px; }
+.list { min-width: 0; padding: 16px 20px 24px; }
+.head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+.head h1 { margin: 0; font-size: 20px; font-weight: 600; line-height: 28px; }
+.summary { display: flex; gap: 18px; color: var(--text-2); font-size: 13px; }
+.summary b { color: var(--text); font-weight: 600; }
+.summary .late b { color: var(--danger); }
+
+/* 筛选 */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+.tabs { display: inline-flex; background: var(--panel); border-radius: 8px; box-shadow: var(--shadow); padding: 3px; }
+.tabs button { border: 0; background: transparent; height: 28px; padding: 0 12px; border-radius: 6px; color: var(--text-2); font-size: 13px; }
+.tabs button:hover { color: var(--text); }
+.tabs button[aria-pressed="true"] { background: var(--accent-weak); color: var(--accent); font-weight: 600; }
+.tabs .c { margin-left: 4px; color: inherit; opacity: .75; }
+.field { height: 34px; border: 1px solid var(--line-strong); background: var(--panel); border-radius: 6px; padding: 0 10px; font-size: 13px; }
+.field:hover { border-color: var(--text-3); }
+input.field { width: 220px; }
+.filters .spacer { flex: 1; }
+.keys { font-size: 12px; color: var(--text-3); }
+kbd { font: 500 11px/1 var(--font); border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 4px; padding: 2px 5px; background: var(--panel); color: var(--text-2); }
+
+/* 表格 */
+.table-wrap { background: var(--panel); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
+table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+thead th { position: sticky; top: 0; background: var(--sunken); color: var(--text-3); font-size: 12px; font-weight: 500; text-align: left; height: 36px; padding: 0 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+thead th button { border: 0; background: none; padding: 0; color: inherit; font: inherit; }
+thead th button:hover { color: var(--text); }
+tbody td { height: 44px; padding: 0 10px; border-bottom: 1px solid var(--line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--row-hover); }
+tbody tr[aria-selected="true"] { background: var(--row-sel); }
+tbody tr:last-child td { border-bottom: 0; }
+.c-check { width: 40px; }
+.c-order { width: 176px; }
+td.c-order { font-size: 13px; letter-spacing: -.01em; }
+.c-buyer { width: 76px; }
+.c-reason { width: 108px; }
+.c-amt { width: 104px; text-align: right; }
+.c-wait { width: 76px; text-align: right; }
+.c-status { width: 76px; }
+td .sub.line { display: block; line-height: 16px; }
+td.two { line-height: 18px; }
+td.c-amt, td.c-wait { text-align: right; }
+.sub { color: var(--text-3); font-size: 12px; }
+.prod { display: block; overflow: hidden; text-overflow: ellipsis; }
+.late { color: var(--danger); font-weight: 600; }
+.chip { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 11px; font-size: 12px; font-weight: 500; }
+.chip.pending { background: var(--accent-weak); color: var(--accent); }
+.chip.refunded { background: var(--ok-weak); color: var(--ok); }
+.chip.declined { background: var(--danger-weak); color: var(--danger); }
+input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); margin: 0; vertical-align: middle; cursor: pointer; }
+input[type="checkbox"]:disabled { cursor: not-allowed; opacity: .35; }
+
+/* 空、错、加载 */
+.state { padding: 56px 20px; text-align: center; color: var(--text-2); }
+.state h2 { margin: 0 0 6px; font-size: 15px; font-weight: 600; color: var(--text); }
+.state p { margin: 0 0 14px; }
+.skel td span { display: block; height: 12px; border-radius: 4px; background: var(--line); animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .5; } }
+
+/* 批量栏 */
+.bulk { position: sticky; bottom: 12px; margin-top: 10px; display: flex; align-items: center; gap: 12px; background: var(--text); color: var(--bg); border-radius: 8px; padding: 8px 8px 8px 16px; box-shadow: 0 6px 20px rgba(0,0,0,.18); }
+.bulk[hidden] { display: none; }
+.bulk .grow { flex: 1; }
+.bulk .ghost { background: transparent; border: 0; color: inherit; opacity: .8; height: 32px; padding: 0 10px; border-radius: 6px; }
+.bulk .ghost:hover { opacity: 1; }
+
+/* 按钮 */
+.btn { height: 32px; padding: 0 14px; border-radius: 6px; border: 1px solid var(--line-strong); background: var(--panel); font-size: 13px; font-weight: 500; transition: background-color .15s, border-color .15s, transform .1s; }
+.btn:hover { border-color: var(--text-3); }
+.btn:active { transform: scale(.96); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.btn.primary:hover { filter: brightness(1.06); }
+.btn.danger { color: var(--danger); }
+.btn.danger-solid { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+/* 详情 */
+.detail { border-left: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }
+.detail .d-head { padding: 16px 18px 12px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.detail h2 { margin: 0; font-size: 16px; font-weight: 600; line-height: 24px; }
+.detail .close { display: none; border: 0; background: none; width: 32px; height: 32px; border-radius: 6px; font-size: 18px; color: var(--text-2); }
+.d-body { padding: 14px 18px; display: flex; flex-direction: column; gap: 16px; flex: 1; }
+.d-amt { display: flex; align-items: baseline; gap: 8px; }
+.d-amt strong { font-size: 24px; font-weight: 600; line-height: 1.2; }
+dl.kv { margin: 0; display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 6px 10px; font-size: 13px; }
+dl.kv dt { color: var(--text-3); }
+dl.kv dd { margin: 0; overflow-wrap: anywhere; }
+.note { background: var(--sunken); border-radius: 6px; padding: 10px 12px; font-size: 13px; color: var(--text-2); }
+.note b { display: block; color: var(--text); font-weight: 600; margin-bottom: 2px; }
+.sec-t { font-size: 12px; color: var(--text-3); margin: 0 0 6px; }
+.timeline { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+.timeline li { display: grid; grid-template-columns: 88px 1fr; gap: 8px; padding: 3px 0; }
+.timeline li span:first-child { color: var(--text-3); }
+.d-foot { position: sticky; bottom: 0; background: var(--panel); border-top: 1px solid var(--line); padding: 12px 18px; display: flex; gap: 8px; flex-wrap: wrap; }
+.d-foot .btn { flex: 1; height: 36px; }
+.reject { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.reject textarea { min-height: 64px; resize: vertical; border: 1px solid var(--line-strong); border-radius: 6px; padding: 8px 10px; background: var(--panel); font-size: 13px; }
+.reject .row { display: flex; gap: 8px; }
+.reject .err { color: var(--danger); font-size: 12px; margin: 0; }
+.empty-detail { margin: auto; padding: 40px 24px; text-align: center; color: var(--text-3); }
+
+/* 确认框和提示 */
+dialog { border: 0; border-radius: 10px; padding: 20px; width: min(420px, calc(100vw - 32px)); background: var(--panel); color: var(--text); box-shadow: 0 12px 40px rgba(0,0,0,.25); }
+dialog::backdrop { background: var(--overlay); }
+dialog h2 { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
+dialog p { margin: 0 0 16px; color: var(--text-2); }
+dialog .row { display: flex; justify-content: flex-end; gap: 8px; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 9px 16px; border-radius: 8px; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.2); }
+.toast[hidden] { display: none; }
+
+.demo { margin-top: 18px; display: flex; gap: 10px; align-items: center; font-size: 12px; color: var(--text-3); flex-wrap: wrap; }
+.demo select { height: 28px; font-size: 12px; }
+
+/* 窄屏：导航变顶栏，表格变列表，详情变全屏 */
+@media (max-width: 1100px) {
+  .main { grid-template-columns: minmax(0, 1fr); }
+  .detail { position: fixed; inset: 0 0 0 auto; width: min(420px, 100vw); z-index: 20; box-shadow: -8px 0 30px rgba(0,0,0,.18); transform: translateX(100%); transition: transform .2s ease; }
+  .detail:not(.open) { visibility: hidden; box-shadow: none; }
+  .detail { transition: transform .2s ease, visibility 0s .2s; }
+  .detail.open { transform: none; transition: transform .2s ease; }
+  .detail .close { display: inline-grid; place-items: center; }
+}
+@media (max-width: 760px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .nav { position: static; height: auto; flex-direction: row; align-items: center; overflow-x: auto; padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .nav .shop { padding: 0 10px 0 0; white-space: nowrap; }
+  .nav a { white-space: nowrap; flex: none; gap: 6px; }
+  .nav .grow, .nav .me { display: none; }
+  .list { padding: 12px 12px 20px; }
+  .summary { gap: 12px; flex-wrap: wrap; }
+  input.field { width: 100%; }
+  .filters .field { flex: 1 1 140px; }
+  .tabs { width: 100%; }
+  .tabs button { flex: 1; padding: 0 6px; }
+  .keys { display: none; }
+  thead { display: none; }
+  table, tbody { display: block; }
+  tbody tr { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; grid-template-areas: "ck order amt" "ck prod prod" "ck meta wait"; gap: 2px 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  tbody td { height: auto; padding: 0; border: 0; }
+  td.c-check { grid-area: ck; padding-top: 2px; }
+  td.c-order { grid-area: order; font-weight: 600; }
+  td.c-amt { grid-area: amt; }
+  td.c-prod { grid-area: prod; }
+  td.c-buyer { grid-area: meta; color: var(--text-3); font-size: 12px; }
+  td.c-wait { grid-area: wait; font-size: 12px; }
+  td.c-reason, td.c-status { display: none; }
+  .detail { width: 100vw; }
+  .bulk { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="nav" aria-label="后台导航">
+    <div class="shop">小橡树杂货</div>
+    <a href="#">订单</a>
+    <a href="#" aria-current="page">退款审核 <span class="count num" id="nav-count"></span></a>
+    <a href="#">商品</a>
+    <a href="#">客户</a>
+    <a href="#">设置</a>
+    <div class="grow"></div>
+    <div class="me">客服：林晓</div>
+  </nav>
+
+  <div class="main">
+    <section class="list" aria-labelledby="page-title">
+      <div class="head">
+        <h1 id="page-title">退款审核</h1>
+        <div class="summary" id="summary"></div>
+      </div>
+
+      <div class="filters">
+        <div class="tabs" role="group" aria-label="按状态筛选" id="tabs"></div>
+        <input class="field" id="q" type="search" placeholder="订单号、买家或商品" aria-label="搜索">
+        <select class="field" id="reason" aria-label="退款原因"><option value="">全部原因</option></select>
+        <select class="field" id="channel" aria-label="支付渠道"><option value="">全部渠道</option><option>微信支付</option><option>支付宝</option></select>
+        <span class="spacer"></span>
+        <span class="keys"><kbd>↑</kbd> <kbd>↓</kbd> 切换　<kbd>空格</kbd> 选中　<kbd>/</kbd> 搜索</span>
+      </div>
+
+      <div class="table-wrap">
+        <table aria-describedby="page-title">
+          <thead><tr>
+            <th class="c-check"><input type="checkbox" id="check-all" aria-label="选中当前列表里所有待处理退款"></th>
+            <th class="c-order">订单号</th>
+            <th class="c-prod">商品</th>
+            <th class="c-buyer">买家</th>
+            <th class="c-reason">原因</th>
+            <th class="c-amt"><button type="button" id="sort-amt">退款金额</button></th>
+            <th class="c-wait"><button type="button" id="sort-wait" aria-label="按等待时间排序">已等待 ↓</button></th>
+            <th class="c-status">状态</th>
+          </tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <div id="state"></div>
+      </div>
+
+      <div class="bulk" id="bulk" hidden>
+        <span id="bulk-text" class="num"></span>
+        <span class="grow"></span>
+        <button type="button" class="ghost" id="bulk-clear">取消选择</button>
+        <button type="button" class="btn primary" id="bulk-ok">同意退款</button>
+      </div>
+
+      <div class="demo">
+        <label>演示状态（正式版删除）
+          <select class="field" id="demo-state">
+            <option value="ok">正常</option><option value="loading">加载中</option><option value="error">加载出错</option><option value="empty">没有任何退款</option>
+          </select>
+        </label>
+        <span>示例数据，操作不会发出请求。店铺、买家和订单都是虚构的。</span>
+      </div>
+    </section>
+
+    <aside class="detail" id="detail" aria-label="退款详情"></aside>
+  </div>
+</div>
+
+<dialog id="confirm">
+  <h2 id="cf-title"></h2>
+  <p id="cf-text"></p>
+  <div class="row"><button type="button" class="btn" id="cf-cancel">再看看</button><button type="button" class="btn primary" id="cf-ok">确认退款</button></div>
+</dialog>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+/* ===== 模拟数据：字段按假设的 GET /api/refunds 返回结构。接通接口后删除 ===== */
+var NOW = new Date('2026-10-26T18:00:00+08:00'); /* 固定"现在"，让等待时间可复现 */
+var MOCK_REFUNDS = [
+  { id: 'r_9012', order_no: '202610241135028871', created_at: '2026-10-24T11:40:00+08:00', buyer: '周***', product: '手冲咖啡滤纸 V60 01 号 100 张', paid_cents: 2800, refund_cents: 2800, reason: '商品破损', note: '盒子压扁了，滤纸有一半折痕，没法用。', channel: '微信支付', shipped: true, received: true, evidence_count: 3, status: 'pending' },
+  { id: 'r_9015', order_no: '202610250902114306', created_at: '2026-10-25T09:05:00+08:00', buyer: '陈***', product: '铸铁小煎锅 16cm（已开锅）', paid_cents: 15900, refund_cents: 15900, reason: '不想要了', note: '', channel: '支付宝', shipped: false, received: false, evidence_count: 0, status: 'pending' },
+  { id: 'r_9017', order_no: '202610250948336120', created_at: '2026-10-25T10:12:00+08:00', buyer: '王***', product: '棉麻桌布 140×180cm 燕麦色，附送同色系餐垫两片和收纳袋一个', paid_cents: 12800, refund_cents: 4000, reason: '与描述不符', note: '颜色比图片深很多，接受部分退款 40 元，不退货。', channel: '微信支付', shipped: true, received: true, evidence_count: 2, status: 'pending' },
+  { id: 'r_9019', order_no: '202610251530772958', created_at: '2026-10-25T15:31:00+08:00', buyer: 'L***', product: '玻璃密封罐 750ml × 3', paid_cents: 6900, refund_cents: 6900, reason: '商品破损', note: '其中一个罐子盖子裂了。', channel: '支付宝', shipped: true, received: true, evidence_count: 1, status: 'pending' },
+  { id: 'r_9021', order_no: '202610260812450037', created_at: '2026-10-26T08:20:00+08:00', buyer: '刘***', product: '木质砧板 大号 38×26cm', paid_cents: 8900, refund_cents: 8900, reason: '发错货', note: '收到的是小号。', channel: '微信支付', shipped: true, received: true, evidence_count: 2, status: 'pending' },
+  { id: 'r_9022', order_no: '202610260935118842', created_at: '2026-10-26T09:41:00+08:00', buyer: '赵***', product: '亚麻围裙 墨绿', paid_cents: 7900, refund_cents: 7900, reason: '不想要了', note: '拍错颜色了，还没发货的话直接退吧。', channel: '支付宝', shipped: false, received: false, evidence_count: 0, status: 'pending' },
+  { id: 'r_9023', order_no: '202610261102664519', created_at: '2026-10-26T11:06:00+08:00', buyer: '孙***', product: '手冲咖啡滤纸 V60 02 号 100 张', paid_cents: 2800, refund_cents: 2800, reason: '发错货', note: '要的是 01 号。', channel: '微信支付', shipped: true, received: false, evidence_count: 0, status: 'pending' },
+  { id: 'r_9024', order_no: '202610261347209981', created_at: '2026-10-26T13:52:00+08:00', buyer: '黄***', product: '陶瓷马克杯 350ml 雾白', paid_cents: 4500, refund_cents: 4500, reason: '商品破损', note: '杯把断了。', channel: '支付宝', shipped: true, received: true, evidence_count: 4, status: 'pending' },
+  { id: 'r_9025', order_no: '202610261610385524', created_at: '2026-10-26T16:12:00+08:00', buyer: '吴***', product: '竹制沥水架', paid_cents: 5600, refund_cents: 5600, reason: '不想要了', note: '', channel: '微信支付', shipped: false, received: false, evidence_count: 0, status: 'pending' },
+  { id: 'r_9001', order_no: '202610201005226613', created_at: '2026-10-20T10:10:00+08:00', buyer: '郑***', product: '铸铁小煎锅 16cm（已开锅）', paid_cents: 15900, refund_cents: 15900, reason: '商品破损', note: '锅边有一个缺口。', channel: '微信支付', shipped: true, received: true, evidence_count: 2, status: 'refunded', handled_by: '林晓', handled_at: '2026-10-20T14:22:00+08:00' },
+  { id: 'r_9003', order_no: '202610211408773190', created_at: '2026-10-21T14:10:00+08:00', buyer: '冯***', product: '棉麻桌布 140×180cm 燕麦色', paid_cents: 12800, refund_cents: 12800, reason: '不想要了', note: '用了两周，想换个颜色。', channel: '支付宝', shipped: true, received: true, evidence_count: 0, status: 'declined', handled_by: '林晓', handled_at: '2026-10-21T16:05:00+08:00', reject_reason: '已超过 7 天无理由退货期' },
+  { id: 'r_9004', order_no: '202610220918004561', created_at: '2026-10-22T09:20:00+08:00', buyer: '何***', product: '玻璃密封罐 750ml × 3', paid_cents: 6900, refund_cents: 2300, reason: '商品破损', note: '一个罐子碎了，退一个的钱就行。', channel: '微信支付', shipped: true, received: true, evidence_count: 1, status: 'refunded', handled_by: '方圆', handled_at: '2026-10-22T10:01:00+08:00' },
+  { id: 'r_9006', order_no: '202610221722558804', created_at: '2026-10-22T17:30:00+08:00', buyer: '许***', product: '亚麻围裙 燕麦', paid_cents: 7900, refund_cents: 7900, reason: '与描述不符', note: '', channel: '支付宝', shipped: true, received: true, evidence_count: 0, status: 'declined', handled_by: '方圆', handled_at: '2026-10-23T09:12:00+08:00', reject_reason: '没有提供凭证，已请买家补充照片' },
+  { id: 'r_9008', order_no: '202610230841197732', created_at: '2026-10-23T08:45:00+08:00', buyer: '谢***', product: '木质砧板 小号 30×20cm', paid_cents: 5900, refund_cents: 5900, reason: '发错货', note: '', channel: '微信支付', shipped: true, received: true, evidence_count: 1, status: 'refunded', handled_by: '林晓', handled_at: '2026-10-23T11:30:00+08:00' },
+  { id: 'r_9010', order_no: '202610231955620015', created_at: '2026-10-23T19:58:00+08:00', buyer: '马***', product: '陶瓷马克杯 350ml 雾白 × 2', paid_cents: 9000, refund_cents: 9000, reason: '不想要了', note: '还没发货。', channel: '支付宝', shipped: false, received: false, evidence_count: 0, status: 'refunded', handled_by: '方圆', handled_at: '2026-10-24T08:40:00+08:00' }
+];
+
+/* 拒绝理由选项（我的假设，见占位清单） */
+var REJECT_REASONS = ['已超过 7 天无理由退货期', '没有提供凭证，已请买家补充照片', '商品已使用，影响二次销售', '其他（在说明里写清楚）'];
+var LATE_HOURS = 24;
+
+(function () {
+  var data = MOCK_REFUNDS.map(function (r) { return Object.assign({}, r); });
+  var STATUS = { pending: '待处理', refunded: '已退款', declined: '已拒绝' };
+  var $ = function (id) { return document.getElementById(id); };
+  var rowsEl = $('rows'), stateEl = $('state'), detail = $('detail');
+  var params = new URLSearchParams(location.search);
+  var st = { status: params.get('status') || 'pending', q: params.get('q') || '', reason: params.get('reason') || '', channel: params.get('channel') || '', sort: params.get('sort') || 'wait', active: null, sel: new Set(), demo: 'ok' };
+
+  var yuan = function (c) { return '¥' + (c / 100).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+  var hours = function (r) { return (NOW - new Date(r.created_at)) / 36e5; };
+  var waitText = function (h) { return h < 1 ? Math.max(1, Math.round(h * 60)) + ' 分钟' : h < 48 ? Math.floor(h) + ' 小时' : Math.floor(h / 24) + ' 天'; };
+  var dt = function (s) { var d = new Date(new Date(s).getTime() + 8 * 36e5); /* 按店铺所在的东八区显示 */ var p = function (n) { return String(n).padStart(2, '0'); };
+    return p(d.getUTCMonth() + 1) + '-' + p(d.getUTCDate()) + ' ' + p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()); };
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+
+  /* 原因下拉来自数据本身 */
+  Array.from(new Set(data.map(function (r) { return r.reason; }))).forEach(function (x) { var o = document.createElement('option'); o.textContent = x; $('reason').appendChild(o); });
+  $('q').value = st.q; $('reason').value = st.reason; $('channel').value = st.channel;
+
+  function filtered(ignoreStatus) {
+    var q = st.q.trim().toLowerCase();
+    return data.filter(function (r) {
+      if (!ignoreStatus && st.status !== 'all' && r.status !== st.status) return false;
+      if (st.reason && r.reason !== st.reason) return false;
+      if (st.channel && r.channel !== st.channel) return false;
+      if (q && (r.order_no + r.buyer + r.product).toLowerCase().indexOf(q) < 0) return false;
+      return true;
+    }).sort(function (a, b) { return st.sort === 'amt' ? b.refund_cents - a.refund_cents : hours(b) - hours(a); });
+  }
+  function syncUrl() {
+    var p = new URLSearchParams();
+    if (st.status !== 'pending') p.set('status', st.status);
+    ['q', 'reason', 'channel'].forEach(function (k) { if (st[k]) p.set(k, st[k]); });
+    if (st.sort !== 'wait') p.set('sort', st.sort);
+    try { history.replaceState(null, '', p.toString() ? '?' + p : location.pathname); } catch (e) {}
+  }
+
+  function renderSummary() {
+    var pend = data.filter(function (r) { return r.status === 'pending'; });
+    var late = pend.filter(function (r) { return hours(r) > LATE_HOURS; });
+    var sum = pend.reduce(function (s, r) { return s + r.refund_cents; }, 0);
+    $('summary').innerHTML = '<span>待处理 <b class="num">' + pend.length + '</b> 笔</span>' +
+      '<span>合计 <b class="num">' + yuan(sum) + '</b></span>' +
+      '<span class="late">超过 ' + LATE_HOURS + ' 小时 <b class="num">' + late.length + '</b> 笔</span>';
+    $('nav-count').textContent = pend.length || '';
+    $('nav-count').hidden = !pend.length;
+    var base = filtered(true);
+    var counts = { pending: 0, refunded: 0, declined: 0 }; base.forEach(function (r) { counts[r.status]++; });
+    $('tabs').innerHTML = [['pending', '待处理'], ['refunded', '已退款'], ['declined', '已拒绝'], ['all', '全部']].map(function (t) {
+      var n = t[0] === 'all' ? base.length : counts[t[0]];
+      return '<button type="button" data-s="' + t[0] + '" aria-pressed="' + (st.status === t[0]) + '">' + t[1] + '<span class="c num">' + n + '</span></button>';
+    }).join('');
+  }
+
+  function renderRows() {
+    stateEl.innerHTML = '';
+    if (st.demo === 'loading') {
+      rowsEl.innerHTML = Array.from({ length: 6 }, function () { return '<tr class="skel"><td></td>' + '<td><span></span></td>'.repeat(7) + '</tr>'; }).join('');
+      return;
+    }
+    if (st.demo === 'error') {
+      rowsEl.innerHTML = '';
+      stateEl.innerHTML = '<div class="state"><h2>退款列表没有加载出来</h2><p>连接服务器超时（GET /api/refunds）。已经处理的退款不受影响，可以重试。</p><button type="button" class="btn" data-retry>重新加载</button></div>';
+      return;
+    }
+    var list = st.demo === 'empty' ? [] : filtered();
+    if (!list.length) {
+      rowsEl.innerHTML = '';
+      var anyFilter = st.q || st.reason || st.channel;
+      stateEl.innerHTML = st.demo === 'empty'
+        ? '<div class="state"><h2>还没有退款申请</h2><p>买家提交退款后会出现在这里，待处理的数量也会显示在左侧导航上。</p></div>'
+        : anyFilter
+          ? '<div class="state"><h2>没有符合条件的退款</h2><p>换个关键词，或者清除筛选再看看。</p><button type="button" class="btn" data-clear>清除筛选</button></div>'
+          : '<div class="state"><h2>' + (st.status === 'pending' ? '待处理的退款都处理完了' : '这里还没有记录') + '</h2><p>' + (st.status === 'pending' ? '新的申请会自动出现在这里。' : '') + '</p></div>';
+      return;
+    }
+    rowsEl.innerHTML = list.map(function (r) {
+      var h = hours(r), late = r.status === 'pending' && h > LATE_HOURS, part = r.refund_cents < r.paid_cents;
+      return '<tr data-id="' + r.id + '" aria-selected="' + (st.active === r.id) + '" tabindex="-1">' +
+        '<td class="c-check"><input type="checkbox" aria-label="选中 ' + r.order_no + '" ' + (r.status !== 'pending' ? 'disabled' : '') + (st.sel.has(r.id) ? ' checked' : '') + '></td>' +
+        '<td class="c-order num">' + r.order_no + '</td>' +
+        '<td class="c-prod"><span class="prod" title="' + esc(r.product) + '">' + esc(r.product) + '</span></td>' +
+        '<td class="c-buyer">' + esc(r.buyer) + '</td>' +
+        '<td class="c-reason two">' + r.reason + (r.shipped ? '' : '<span class="sub line">未发货</span>') + '</td>' +
+        '<td class="c-amt num two">' + yuan(r.refund_cents) + (part ? '<div class="sub">实付 ' + yuan(r.paid_cents) + '</div>' : '') + '</td>' +
+        '<td class="c-wait num' + (late ? ' late' : '') + '" title="申请于 ' + dt(r.created_at) + '">' + (r.status === 'pending' ? waitText(h) : '—') + '</td>' +
+        '<td class="c-status"><span class="chip ' + r.status + '">' + STATUS[r.status] + '</span></td></tr>';
+    }).join('');
+  }
+  function renderBulk() {
+    var ids = Array.from(st.sel), sum = ids.reduce(function (s, id) { return s + byId(id).refund_cents; }, 0);
+    $('bulk').hidden = !ids.length;
+    $('bulk-text').textContent = '已选 ' + ids.length + ' 笔，共 ' + yuan(sum);
+    var visible = filtered().filter(function (r) { return r.status === 'pending'; });
+    var all = $('check-all');
+    all.disabled = !visible.length;
+    all.checked = visible.length > 0 && visible.every(function (r) { return st.sel.has(r.id); });
+    all.indeterminate = !all.checked && visible.some(function (r) { return st.sel.has(r.id); });
+  }
+  function byId(id) { return data.find(function (r) { return r.id === id; }); }
+
+  function renderDetail() {
+    var r = st.active && byId(st.active);
+    if (!r) { detail.innerHTML = '<div class="empty-detail">在左边选一笔退款查看详情。</div>'; return; }
+    var part = r.refund_cents < r.paid_cents;
+    var tl = [['下单', r.order_no.slice(4, 6) + '-' + r.order_no.slice(6, 8) + ' ' + r.order_no.slice(8, 10) + ':' + r.order_no.slice(10, 12)], ['物流', r.shipped ? (r.received ? '已签收' : '已发货，未签收') : '未发货'], ['申请退款', dt(r.created_at)]];
+    if (r.handled_at) tl.push([r.status === 'refunded' ? '同意退款' : '拒绝', dt(r.handled_at) + '　' + r.handled_by]);
+    var foot = r.status === 'pending'
+      ? '<button type="button" class="btn danger" data-act="reject-open">拒绝</button><button type="button" class="btn primary" data-act="approve">同意退款 ' + yuan(r.refund_cents) + '</button>'
+      : '<span class="sub">' + (r.status === 'refunded' ? '已原路退回' + r.channel + '，无法撤回。' : '已拒绝：' + esc(r.reject_reason)) + '</span>';
+    detail.innerHTML =
+      '<div class="d-head"><div><h2 class="num">' + r.order_no + '</h2><div class="sub">' + esc(r.buyer) + '　' + r.channel + '</div></div>' +
+      '<button type="button" class="close" data-act="close" aria-label="关闭详情">×</button></div>' +
+      '<div class="d-body">' +
+        '<div><div class="d-amt"><strong class="num">' + yuan(r.refund_cents) + '</strong><span class="chip ' + r.status + '">' + STATUS[r.status] + '</span></div>' +
+          (part ? '<div class="sub num">部分退款，实付 ' + yuan(r.paid_cents) + '</div>' : '<div class="sub">全额退款</div>') + '</div>' +
+        '<dl class="kv"><dt>商品</dt><dd>' + esc(r.product) + '</dd><dt>原因</dt><dd>' + r.reason + '</dd>' +
+          '<dt>类型</dt><dd>' + (r.shipped ? (r.received ? '退货退款，买家需寄回' : '已发货未签收，可拦截快递后退款') : '仅退款，商品未发货') + '</dd>' +
+          '<dt>凭证</dt><dd>' + (r.evidence_count ? '买家上传了 ' + r.evidence_count + ' 张图片（演示中未加载）' : '没有上传') + '</dd></dl>' +
+        '<div class="note"><b>买家说明</b>' + (r.note ? esc(r.note) : '买家没有填写说明。') + '</div>' +
+        '<div><p class="sec-t">进度</p><ul class="timeline">' + tl.map(function (t) { return '<li><span>' + t[0] + '</span><span class="num">' + t[1] + '</span></li>'; }).join('') + '</ul></div>' +
+      '</div>' +
+      '<div class="d-foot" id="d-foot">' + foot + '</div>';
+  }
+  function openRejectForm() {
+    $('d-foot').innerHTML = '<div class="reject"><label class="sub" for="rj">拒绝理由（买家会看到）</label>' +
+      '<select class="field" id="rj"><option value="">请选择</option>' + REJECT_REASONS.map(function (x) { return '<option>' + x + '</option>'; }).join('') + '</select>' +
+      '<textarea id="rj-note" placeholder="补充说明，选「其他」时必填" aria-label="补充说明"></textarea><p class="err" id="rj-err" hidden></p>' +
+      '<div class="row"><button type="button" class="btn" data-act="reject-cancel" style="flex:1">取消</button><button type="button" class="btn danger-solid" data-act="reject" style="flex:1">确认拒绝</button></div></div>';
+    $('rj').focus();
+  }
+
+  function render() { renderSummary(); renderRows(); renderBulk(); renderDetail(); syncUrl(); }
+
+  var toastT;
+  function toast(msg) { var t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 3000); }
+
+  /* 同意退款不能撤回，所以这一步二次确认 */
+  var pending = [];
+  function askApprove(ids) {
+    pending = ids;
+    var sum = ids.reduce(function (s, id) { return s + byId(id).refund_cents; }, 0);
+    $('cf-title').textContent = ids.length > 1 ? '同意这 ' + ids.length + ' 笔退款？' : '同意这笔退款？';
+    $('cf-text').textContent = '共 ' + yuan(sum) + '，会原路退回买家的支付账户。退款发出后无法撤回。';
+    $('cf-ok').textContent = '确认退款 ' + yuan(sum);
+    $('confirm').showModal();
+  }
+  $('cf-cancel').onclick = function () { $('confirm').close(); };
+  $('cf-ok').onclick = function () {
+    /* TODO: POST /api/refunds/:id/approve，逐笔处理并显示失败的那几笔 */
+    pending.forEach(function (id) { var r = byId(id); r.status = 'refunded'; r.handled_by = '林晓'; r.handled_at = NOW.toISOString(); st.sel.delete(id); });
+    $('confirm').close();
+    toast(pending.length > 1 ? '已同意 ' + pending.length + ' 笔退款' : '已同意退款，钱会原路退回');
+    if (st.status === 'pending') st.active = null;
+    render();
+  };
+
+  /* 事件 */
+  $('tabs').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; st.status = b.dataset.s; st.sel.clear(); render(); });
+  var qT; $('q').addEventListener('input', function () { clearTimeout(qT); qT = setTimeout(function () { st.q = $('q').value; render(); }, 150); });
+  $('reason').onchange = function () { st.reason = this.value; render(); };
+  $('channel').onchange = function () { st.channel = this.value; render(); };
+  $('sort-amt').onclick = function () { st.sort = 'amt'; this.textContent = '退款金额 ↓'; $('sort-wait').textContent = '已等待'; render(); };
+  $('sort-wait').onclick = function () { st.sort = 'wait'; this.textContent = '已等待 ↓'; $('sort-amt').textContent = '退款金额'; render(); };
+  if (st.sort === 'amt') $('sort-amt').click();
+
+  rowsEl.addEventListener('click', function (e) {
+    var tr = e.target.closest('tr[data-id]'); if (!tr) return;
+    var id = tr.dataset.id;
+    if (e.target.matches('input[type="checkbox"]')) { e.target.checked ? st.sel.add(id) : st.sel.delete(id); renderBulk(); return; }
+    if (e.target.closest('td.c-check')) return;
+    st.active = id; render(); detail.classList.add('open');
+  });
+  $('check-all').onchange = function () {
+    var vis = filtered().filter(function (r) { return r.status === 'pending'; });
+    vis.forEach(function (r) { this.checked ? st.sel.add(r.id) : st.sel.delete(r.id); }, this);
+    renderRows(); renderBulk();
+  };
+  $('bulk-clear').onclick = function () { st.sel.clear(); renderRows(); renderBulk(); };
+  $('bulk-ok').onclick = function () { askApprove(Array.from(st.sel)); };
+  stateEl.addEventListener('click', function (e) {
+    if (e.target.matches('[data-clear]')) { st.q = st.reason = st.channel = ''; $('q').value = ''; $('reason').value = ''; $('channel').value = ''; render(); }
+    if (e.target.matches('[data-retry]')) { $('demo-state').value = 'ok'; st.demo = 'ok'; render(); }
+  });
+  detail.addEventListener('click', function (e) {
+    var a = e.target.closest('[data-act]'); if (!a) return;
+    var act = a.dataset.act, r = byId(st.active);
+    if (act === 'close') detail.classList.remove('open');
+    if (act === 'approve') askApprove([r.id]);
+    if (act === 'reject-open') openRejectForm();
+    if (act === 'reject-cancel') renderDetail();
+    if (act === 'reject') {
+      var why = $('rj').value, note = $('rj-note').value.trim(), err = $('rj-err');
+      if (!why) { err.textContent = '请选择一个拒绝理由，买家会看到它。'; err.hidden = false; $('rj').focus(); return; }
+      if (why.indexOf('其他') === 0 && !note) { err.textContent = '选了「其他」时，请在说明里写清楚原因。'; err.hidden = false; $('rj-note').focus(); return; }
+      /* TODO: POST /api/refunds/:id/decline */
+      r.status = 'declined'; r.reject_reason = why.indexOf('其他') === 0 ? note : why; r.handled_by = '林晓'; r.handled_at = NOW.toISOString();
+      st.sel.delete(r.id); toast('已拒绝，买家会收到理由'); render();
+    }
+  });
+  $('demo-state').onchange = function () { st.demo = this.value; render(); };
+
+  /* 键盘：↑↓ 切换，空格选中，/ 搜索，Esc 关闭详情 */
+  document.addEventListener('keydown', function (e) {
+    if (e.target.matches('input:not([type="checkbox"]), select, textarea') || $('confirm').open) return;
+    var list = filtered(), i = list.findIndex(function (r) { return r.id === st.active; });
+    if (e.key === '/') { e.preventDefault(); $('q').focus(); }
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!list.length) return; e.preventDefault();
+      i = e.key === 'ArrowDown' ? Math.min(list.length - 1, i + 1) : Math.max(0, i - 1);
+      st.active = list[i].id; render();
+      var tr = rowsEl.querySelector('tr[data-id="' + st.active + '"]'); tr && tr.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === ' ' && st.active) {
+      var r = byId(st.active); if (r.status !== 'pending') return; e.preventDefault();
+      st.sel.has(r.id) ? st.sel.delete(r.id) : st.sel.add(r.id); renderRows(); renderBulk();
+    } else if (e.key === 'Escape') detail.classList.remove('open');
+  });
+
+  if (matchMedia('(min-width: 1101px)').matches) { var first = filtered()[0]; st.active = first ? first.id : null; }
+  render();
+})();
+</script>
+</body>
+</html>

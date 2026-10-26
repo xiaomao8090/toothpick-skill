@@ -1,6 +1,6 @@
 # Benchmarks measured from real products
 
-> Actual computed styles read in a browser in October 2026, at 1440px wide.
+> Actual computed styles read in a browser in October 2026, at 1440px wide. Sites get redesigned and numbers go stale; check the date before relying on them.
 > **These are a reference, not a standard.** They are all tech products; a coffee shop or an architecture studio copying their look is just as wrong.
 > What to learn is the practice behind them: restraint, precision, consistency, and the product itself as the hero.
 
@@ -54,6 +54,35 @@
 - Much of the 12–14px text on the page is actually **product interface drawn in HTML**; that is the main reason it looks good
 - Radius 8px / 12px; separation with low-opacity white
 
+### Chinese products (26 October 2026, 1440px wide)
+
+#### DingTalk website (Persuade)
+- White background; body text #181C1F, secondary text the same color at 60% opacity
+- Font stack starts with PingFang SC and Microsoft YaHei; no web fonts loaded
+- Hero headline 80px / **weight 600** / line height 1.0; section headings 32px / 600 / line height 1.5
+- Body and captions 13–16px, mostly weight 500
+- Download button 56px tall, fully rounded, near-black
+- Only 3 shadows (around `0 19px 50px rgba(0,0,0,.1)`), 12 elements with borders
+- Product imagery and pictures cover about 57% of the page
+
+#### Juejin home (Operate: a feed)
+- Light grey #F2F3F5 background, content in white columns; the feed is 720px wide
+- System fonts; article titles 16px / **600** / 24px line height; excerpts and metadata 12–13px / 18–22px
+- Three text colors: #252933 titles, #515767 body, #8A919F secondary; blue #1E80FF only on the primary button and links
+- Radius 2–4px, buttons 32–36px tall; 3 shadows on the page
+- The most common text on the page is 13px grey secondary text
+
+#### WeChat Read on the web (Operate: shelf and store)
+- Light grey #F4F5F7 background, cards with 12px radius
+- System fonts; body 14px / 20px, book titles 16px / 500, section titles 20px / 500
+- Three text colors: #212832, #5D646E, #858C96
+- One kind of shadow: `0 0 22px rgba(0,0,0,.05)`
+
+#### sspai article page (Read)
+- Body 17px / line height 1.8 (30.6px), 32px between paragraphs, 680px column, about 40 characters per line
+- Title 38px / 600, subheadings 24px / 600 / line height 1.4
+- System fonts, pure black body text
+
 ## What they share
 
 1. **Almost only black, white and grey**, plus one functional color (links or the primary button). Greys are pure neutral or a very slight cool.
@@ -64,6 +93,14 @@
 6. **The product is the hero**: 25–46% of a marketing page is product imagery.
 7. **One focal point per screen**, no decorative symbols, numbering or labels.
 8. **No "style"**: none of them is "something-style". Their identity comes from the product, the content and the precision of the craft.
+
+## How Chinese interfaces differ from English ones
+
+- **Heavier headings.** The English references set headings at 400–510; Chinese products mostly use 500–600. Chinese characters have many strokes, and a system CJK font at 400 looks faint at large sizes. Before applying "large but not bold" to Chinese, check it in the real font.
+- **Taller line height.** Chinese body text runs at 1.5–1.8, around 1.8 for long reading; the 1.4–1.5 common in English feels cramped in Chinese.
+- **Smaller sizes, higher density.** Chinese product interfaces use a lot of 12–14px; 13px secondary text is normal in feeds.
+- **System fonts almost everywhere.** Chinese web fonts are large, so products use stacks starting with PingFang SC and Microsoft YaHei. When you do load a web font (for headings, say), keep to a few weights and consider subsetting.
+- **A light grey page with white content columns** is common in Chinese Operate-mode products (Juejin, WeChat Read), more so than the plain white of the English references.
 
 ## How to use this reference
 

@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ffffff">
+<meta name="color-scheme" content="light">
+<title>tern 第一话：四十一秒</title>
+<meta name="description" content="tern 是一个开源的 PostgreSQL 迁移检查工具：执行前算出每条语句会拿什么锁、挡住多久，并给出不锁表的改写方案。这一页用一话漫画讲一次锁表事故。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Ma+Shan+Zheng&family=Noto+Sans+SC:wght@700;900&family=Noto+Serif+SC:wght@400;700;900&family=Zhi+Mang+Xing&display=swap" rel="stylesheet">
+<!--
+【这一版】漫画版。用户要的是"白底黑字、竖排、墨水"的漫画风格。
+漫画在这里不是换皮：tern 要讲的本来就是一个"出事、危机、解决"的故事，漫画最擅长这种节奏。
+每一种漫画手法都要对应一个内容：
+- 集中线：视线被拉向闯祸的那条 SQL，和 tern 的检查结果
+- 网点：代替灰色；锁越重，设定资料卡上的网点越密
+- 速度线：请求一直涌进来；回填在后台跑了 38 秒
+- 拟声字：「咔」是上锁，「叮铃铃」是客服电话
+- 竖排：标题、旁白和对话；代码、数字表格保持横排，因为它们要被读准
+- 格子的阅读顺序：同一行从右到左，和竖排一致；真正的步骤加了序号
+
+【明暗】只做浅色。漫画是白纸黑墨，反色以后会变成另一种东西；页面不跟随系统深色，color-scheme 设为 light。
+
+【只属于 tern 的东西】（沿用第四版的盘点）
+821 万行的 orders 表；gen_random_uuid() 默认值导致整表重写，ACCESS EXCLUSIVE 41 秒；
+约 70 次读写每秒，排队 2,870 个请求；六步改写，挡读写的时间合计 0.05 秒，总耗时 53 秒变 57 秒；
+--max-lock 2s 与退出码 1；PostgreSQL 的 8 种表锁；四步接入；不支持 MySQL、SQLite、存储过程内 DDL、Windows 原生。
+
+【占位清单】
+- 未接通：页眉和页脚的「文档」「GitHub」「更新日志」链接
+- 终端输出是写好的演示脚本，不是真实运行结果
+- 排队动画按"每秒约 70 次读写"估算并快放 10 倍，页面上已注明
+- 示例内容：tern 项目、orders 表和所有数字都是虚构的，页脚已注明
+-->
+<style>
+:root {
+  color-scheme: light;
+  --paper: #ffffff;
+  --ink: #111111;
+  --ink-soft: #3b3b3b;
+  --line: 3px;
+  --gap: 12px;
+  --brush: "Ma Shan Zheng", "STKaiti", "KaiTi", serif;
+  --fx: "Zhi Mang Xing", "Ma Shan Zheng", "STKaiti", cursive;
+  --serif: "Noto Serif SC", "Noto Serif CJK SC", "Songti SC", "SimSun", serif;
+  --sans: "Noto Sans SC", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  /* 网点：用圆点代替灰色 */
+  --tone-1: radial-gradient(circle, var(--ink) 0.8px, transparent 1.1px) 0 0 / 6px 6px;
+  --tone-2: radial-gradient(circle, var(--ink) 1px, transparent 1.35px) 0 0 / 4.5px 4.5px;
+  --tone-3: radial-gradient(circle, var(--ink) 1.35px, transparent 1.7px) 0 0 / 4px 4px;
+  --tone-4: radial-gradient(circle, var(--ink) 1.7px, transparent 2px) 0 0 / 4px 4px;
+}
+* { box-sizing: border-box; }
+html { background: var(--paper); scrollbar-color: var(--ink) var(--paper); -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/1.8 var(--serif); -webkit-font-smoothing: antialiased; caret-color: var(--ink); }
+::selection { background: var(--ink); color: var(--paper); }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:active { transform: scale(.96); }
+code, pre, .mono { font-family: var(--mono); }
+.num { font-variant-numeric: tabular-nums; }
+.v { writing-mode: vertical-rl; text-orientation: mixed; }
+.tcy { text-combine-upright: all; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* 页面骨架：一页一页的漫画 */
+.top { max-width: 1180px; margin: 0 auto; padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.top .name { font: 700 22px/1 var(--serif); text-decoration: none; letter-spacing: .02em; }
+.top nav { display: flex; gap: 22px; font: 700 14px/1 var(--sans); }
+.top nav a { text-decoration: none; padding: 6px 0; }
+.top nav a:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+.page { max-width: 1180px; margin: 0 auto; padding: 28px 24px 18px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 20px; }
+.page > .chap { grid-column: 2; grid-row: 1; margin: 0; font: 400 34px/1.2 var(--brush); writing-mode: vertical-rl; letter-spacing: .12em; align-self: start; padding-top: 4px; }
+.page > .chap small { font: 700 14px/1 var(--sans); letter-spacing: .3em; margin-block-start: 14px; display: inline-block; }
+.page > .sheet { grid-column: 1; grid-row: 1; min-width: 0; }
+.folio { grid-column: 1 / -1; text-align: center; font: 400 13px/1 var(--serif); color: var(--ink-soft); padding-top: 18px; }
+
+.grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--gap); direction: rtl; }
+.grid > * { direction: ltr; min-width: 0; }
+.koma { position: relative; border: var(--line) solid var(--ink); background: var(--paper); overflow: hidden; margin: 0; }
+
+/* 旁白框和对话气泡 */
+.cap { position: absolute; z-index: 3; background: var(--paper); border: 2px solid var(--ink); padding: 12px 9px; font: 700 17px/1.65 var(--serif); writing-mode: vertical-rl; letter-spacing: .06em; }
+.cap.h { writing-mode: horizontal-tb; padding: 8px 12px; font-size: 14px; line-height: 1.6; font-weight: 400; letter-spacing: 0; }
+.bubble { position: absolute; z-index: 3; background: var(--paper); border: 2.5px solid var(--ink); border-radius: 50%; padding: 30px 26px; font: 900 20px/1.5 var(--sans); writing-mode: vertical-rl; letter-spacing: .08em; }
+.bubble::after { content: ""; position: absolute; width: 22px; height: 22px; background: var(--paper); border: solid var(--ink); border-width: 0 2.5px 2.5px 0; }
+.bubble.tail-bl::after { left: 14%; bottom: 4%; transform: rotate(48deg) skew(18deg, 18deg); }
+.shout { position: absolute; z-index: 3; filter: drop-shadow(2px 0 0 var(--ink)) drop-shadow(-2px 0 0 var(--ink)) drop-shadow(0 2px 0 var(--ink)) drop-shadow(0 -2px 0 var(--ink)); }
+.shout > span { display: block; background: var(--paper); padding: 34px 40px; font: 900 16px/1.45 var(--sans); text-align: center;
+  clip-path: polygon(50% 0%, 58% 13%, 71% 3%, 74% 19%, 91% 11%, 86% 29%, 100% 34%, 89% 47%, 100% 61%, 85% 67%, 93% 85%, 74% 81%, 70% 98%, 57% 86%, 46% 100%, 39% 85%, 22% 96%, 23% 78%, 4% 81%, 13% 64%, 0% 50%, 12% 40%, 2% 23%, 20% 24%, 18% 5%, 34% 15%); }
+.shout.v > span { writing-mode: vertical-rl; padding: 40px 34px; }
+
+/* 拟声字：白字黑边 */
+.fx { position: absolute; z-index: 2; font: 400 120px/1 var(--fx); color: var(--paper); -webkit-text-stroke: 7px var(--ink); paint-order: stroke fill; pointer-events: none; user-select: none; white-space: nowrap; }
+.fx.ink { color: var(--ink); -webkit-text-stroke: 7px var(--paper); }
+
+/* 漫画手法：集中线、速度线、网点 */
+.focus { position: absolute; inset: 0; z-index: 0;
+  background:
+    repeating-conic-gradient(from 1deg at var(--fx-x, 50%) var(--fx-y, 50%), var(--ink) 0deg .55deg, transparent .55deg 3.3deg),
+    repeating-conic-gradient(from 0deg at var(--fx-x, 50%) var(--fx-y, 50%), var(--ink) 0deg 1.3deg, transparent 1.3deg 7.9deg);
+  -webkit-mask: radial-gradient(ellipse 62% 58% at var(--fx-x, 50%) var(--fx-y, 50%), transparent 52%, #000 86%);
+          mask: radial-gradient(ellipse 62% 58% at var(--fx-x, 50%) var(--fx-y, 50%), transparent 52%, #000 86%); }
+.speed { position: absolute; inset: 0; z-index: 0;
+  background:
+    repeating-linear-gradient(180deg, var(--ink) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(180deg, var(--ink) 0 2px, transparent 2px 31px),
+    repeating-linear-gradient(180deg, transparent 0 13px, var(--ink) 13px 14px, transparent 14px 19px);
+  -webkit-mask: linear-gradient(90deg, #000 0, rgba(0,0,0,.85) 18%, transparent 62%);
+          mask: linear-gradient(90deg, #000 0, rgba(0,0,0,.85) 18%, transparent 62%); }
+
+/* ===== 扉页 ===== */
+.cover .koma { min-height: min(86vh, 760px); --fx-x: 40%; --fx-y: 50%; }
+.cover h1 { position: absolute; z-index: 3; top: 30px; right: 34px; margin: 0; display: flex; flex-direction: row-reverse; gap: 18px; align-items: flex-start; writing-mode: horizontal-tb; }
+.cover h1 .title { writing-mode: vertical-rl; font: 400 clamp(92px, 12vw, 176px)/1 var(--brush); letter-spacing: -.02em; background: var(--paper); padding: 10px 6px; }
+.cover h1 .sub { writing-mode: vertical-rl; font: 700 21px/1.6 var(--serif); letter-spacing: .08em; background: var(--paper); border: 2px solid var(--ink); padding: 14px 8px; margin-top: 24px; }
+.cover .ep { position: absolute; z-index: 3; top: 30px; left: 30px; font: 700 14px/1.4 var(--sans); background: var(--paper); border: 2px solid var(--ink); padding: 8px 12px; }
+.cover .ep b { display: block; font: 400 30px/1.15 var(--brush); }
+.villain { position: absolute; z-index: 2; left: 40%; top: 50%; transform: translate(-50%, -50%) rotate(-3deg); width: min(560px, 54%); }
+.villain .shout { position: relative; }
+.villain .shout > span { padding: 70px 70px; font: 500 15px/1.6 var(--mono); text-align: left; white-space: pre-wrap; }
+.villain .shout > span b { display: block; font: 900 13px/1.4 var(--sans); margin-bottom: 6px; letter-spacing: .1em; }
+.cover .lead { position: absolute; z-index: 3; left: 30px; bottom: 30px; width: min(470px, 46%); background: var(--paper); border: 2px solid var(--ink); padding: 18px 20px; font: 400 15px/1.75 var(--serif); }
+.cover .lead p { margin: 0 0 14px; }
+.install { display: flex; align-items: stretch; border: 2px solid var(--ink); }
+.install code { flex: 1; min-width: 0; padding: 9px 12px; font-size: 13.5px; white-space: nowrap; overflow-x: auto; }
+.install button { border: 0; border-left: 2px solid var(--ink); background: var(--ink); color: var(--paper); padding: 0 16px; font: 700 14px/1 var(--sans); }
+.cover .lead .more { display: inline-block; margin-top: 12px; font: 700 14px/1 var(--sans); text-underline-offset: 4px; }
+
+/* ===== 其一 出事 ===== */
+.k1 { grid-column: 1 / -1; min-height: 360px; }
+.k1 .dusk { position: absolute; inset: 0; background: var(--tone-1);
+  -webkit-mask: linear-gradient(180deg, #000, transparent 70%); mask: linear-gradient(180deg, #000, transparent 70%); }
+.k1 .cap { top: 18px; right: 18px; }
+.k1 .bubble { top: 40px; right: 116px; }
+.pr { position: absolute; z-index: 2; left: 26px; bottom: 26px; width: min(620px, calc(100% - 300px)); border: 2px solid var(--ink); background: var(--paper); }
+.pr header { display: flex; justify-content: space-between; gap: 12px; padding: 9px 14px; border-bottom: 2px solid var(--ink); font: 700 14px/1.5 var(--sans); }
+.pr header .merged { background: var(--ink); color: var(--paper); padding: 0 8px; flex: none; }
+.pr .file { padding: 8px 14px 0; font: 400 12.5px/1.5 var(--mono); color: var(--ink-soft); }
+.pr pre { margin: 0; padding: 6px 14px 14px; font-size: 13.5px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+
+.k2 { grid-column: 9 / 13; grid-row: 2; min-height: 500px; background: var(--tone-3); }
+.k2 .burst { position: absolute; z-index: 1; left: 50%; top: 40%; width: 360px; height: 360px; transform: translate(-50%, -50%);
+  background: var(--paper); clip-path: polygon(50% 0, 55% 30%, 75% 6%, 66% 36%, 98% 22%, 72% 47%, 100% 56%, 70% 60%, 90% 88%, 61% 70%, 52% 100%, 45% 70%, 18% 94%, 33% 63%, 0 66%, 28% 50%, 3% 30%, 34% 38%, 22% 4%, 44% 31%); }
+.k2 .fx { left: 50%; top: 40%; transform: translate(-50%, -50%) rotate(-10deg); font-size: 168px; }
+.k2 .stamp { position: absolute; z-index: 3; left: 50%; top: 64%; transform: translateX(-50%) rotate(4deg); background: var(--ink); color: var(--paper); font: 500 15px/1 var(--mono); padding: 9px 12px; letter-spacing: .04em; white-space: nowrap; }
+.k2 .cap { top: 16px; right: 16px; }
+.k2 .cap.h { top: auto; right: 14px; left: 14px; bottom: 14px; }
+
+.k3 { grid-column: 1 / 9; grid-row: 2; padding: 22px 22px 18px; display: flex; flex-direction: column; gap: 14px; }
+.k3 .speed { height: 132px; bottom: auto; }
+.k3 .row1 { position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.gauges { display: flex; gap: 10px; flex-wrap: wrap; }
+.gauge { background: var(--paper); border: 2px solid var(--ink); padding: 8px 14px 10px; }
+.gauge dt { font: 700 13px/1.4 var(--sans); }
+.gauge dd { margin: 0; font: 900 44px/1.05 var(--serif); font-variant-numeric: tabular-nums; }
+.gauge dd small { font-size: 18px; font-weight: 700; margin-left: 3px; }
+.k3 .cap.v-in { position: relative; flex: none; }
+.switch { position: relative; z-index: 2; display: inline-flex; border: 2px solid var(--ink); background: var(--paper); align-self: flex-start; }
+.switch button { border: 0; background: transparent; padding: 8px 14px; font: 700 14px/1.2 var(--sans); }
+.switch button + button { border-left: 2px solid var(--ink); }
+.switch button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.queue { position: relative; z-index: 2; display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 3px; background: var(--paper); padding: 10px; border: 2px solid var(--ink); }
+.queue i { aspect-ratio: 1; border: 1.5px solid var(--ink); background: var(--paper); }
+.queue i.on { background: var(--ink); }
+.queue i.part { background: var(--tone-2); }
+.k3 .note { position: relative; z-index: 2; margin: 0; font: 400 13.5px/1.6 var(--serif); color: var(--ink-soft); }
+
+.k4 { grid-column: 1 / -1; min-height: 340px; background: var(--tone-2); }
+.k4 .fx { font-size: 104px; }
+.k4 .fx.a { left: 3%; top: 4%; transform: rotate(-8deg); }
+.k4 .fx.b { left: 36%; bottom: 2%; transform: rotate(6deg); font-size: 88px; }
+.k4 .shout.s1 { left: 30%; top: 30%; }
+.k4 .shout.s2 { left: 55%; top: 10%; }
+.k4 .shout.s3 { left: 6%; bottom: 10%; }
+.k4 .cap { top: 18px; right: 18px; font-size: 19px; }
+.k4 .cap.h { top: auto; right: 18px; bottom: 18px; max-width: 280px; }
+
+/* ===== 其二 tern ===== */
+.k5 { grid-column: 1 / -1; min-height: 600px; --fx-x: 46%; --fx-y: 52%; }
+.k5 .cap { top: 18px; right: 18px; font-size: 19px; }
+.k5 .fx { right: 7%; bottom: 4%; transform: rotate(-6deg); font-size: 130px; }
+.term { position: absolute; z-index: 2; left: 46%; top: 52%; transform: translate(-50%, -50%); width: min(720px, 76%); background: var(--ink); color: var(--paper); border: var(--line) solid var(--ink); box-shadow: 0 0 0 6px var(--paper); }
+.term .bar { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; border-bottom: 1px solid #555; font: 400 12.5px/1.4 var(--mono); }
+.term .bar button { background: transparent; border: 1px solid var(--paper); color: var(--paper); padding: 3px 9px; font: 700 12px/1.3 var(--sans); }
+.term pre { margin: 0; padding: 14px 16px 18px; min-height: 360px; font-size: 13px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
+.term .d { color: #b8b8b8; }
+.term .bad { background: var(--paper); color: var(--ink); padding: 0 4px; font-weight: 500; }
+.term .ok { border: 1px solid var(--paper); padding: 0 3px; }
+.term .tip { text-decoration: underline; text-underline-offset: 3px; }
+.cursor { display: inline-block; width: .6em; height: 1.1em; background: var(--paper); vertical-align: text-bottom; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+.steps-head { grid-column: 1 / -1; display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: flex-end; gap: 20px; padding: 8px 0 0; }
+.steps-head p { margin: 0; max-width: 560px; font-size: 15px; }
+.step { grid-column: span 4; min-height: 250px; padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 10px; }
+.step .no { position: absolute; top: 12px; right: 14px; font: 400 40px/1 var(--brush); writing-mode: vertical-rl; }
+.step pre { margin: 0 46px 0 0; font-size: 12.5px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+.step .lock { margin-top: auto; font: 500 12.5px/1.4 var(--mono); }
+.step .dur { display: flex; align-items: baseline; gap: 8px; font: 900 30px/1.1 var(--serif); font-variant-numeric: tabular-nums; }
+.step .dur small { font: 700 14px/1.4 var(--sans); }
+.step .ka { display: inline-block; background: var(--ink); color: var(--paper); font: 400 20px/1 var(--fx); padding: 4px 6px 2px; transform: rotate(-6deg); }
+.batches { height: 18px; border: 2px solid var(--ink); background: repeating-linear-gradient(90deg, var(--ink) 0 1px, var(--paper) 1px 4px); }
+.step .explain { font: 400 13.5px/1.6 var(--serif); margin: 0; }
+
+.k12 { grid-column: 1 / -1; min-height: 420px; display: grid; place-items: center; padding: 40px 120px 40px 40px; }
+.k12 .cap { top: 22px; right: 22px; font-size: 19px; }
+.k12 .calm { text-align: center; }
+.k12 .big { font: 400 clamp(96px, 14vw, 190px)/1 var(--brush); font-variant-numeric: tabular-nums; }
+.k12 .big small { font-size: .32em; margin-left: .1em; }
+.k12 p { max-width: 520px; margin: 10px auto 0; font-size: 15px; }
+
+/* ===== 设定资料 ===== */
+.intro { margin: 0 0 18px; max-width: 640px; font-size: 15.5px; }
+.cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap); direction: rtl; }
+.card { direction: ltr; border: 2px solid var(--ink); display: flex; flex-direction: column; min-width: 0; }
+.card .band { position: relative; height: 92px; border-bottom: 2px solid var(--ink); display: flex; align-items: center; justify-content: center; }
+.card .band .g { position: relative; font: 400 46px/1 var(--brush); background: var(--paper); padding: 6px 12px 4px; border: 2px solid var(--ink); }
+.card .body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.card h3 { margin: 0; font: 500 13.5px/1.35 var(--mono); letter-spacing: .02em; }
+.card .who { margin: 0; font: 400 13.5px/1.55 var(--serif); }
+.card .hits { direction: rtl; display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; margin-top: auto; }
+.card .hits i { aspect-ratio: 1; border: 1.5px solid var(--ink); }
+.card .hits i.x { background: var(--ink); }
+.card dl { margin: 0; display: flex; gap: 14px; font: 700 13px/1.4 var(--sans); }
+.card dl div { display: flex; gap: 4px; }
+.card dt::after { content: "："; }
+.card dd { margin: 0; }
+.card.boss { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.card.boss .band { border-color: var(--paper); background: var(--ink); }
+.card.boss .band .g { background: var(--ink); color: var(--paper); border-color: var(--paper); }
+.card.boss .hits i { border-color: var(--paper); }
+.card.boss .hits i.x { background: var(--paper); }
+.card .tag { font: 700 12px/1.4 var(--sans); border: 1.5px solid currentColor; padding: 1px 6px; align-self: flex-start; }
+.legend { margin: 14px 0 0; font-size: 13.5px; color: var(--ink-soft); }
+
+/* ===== 分镜 ===== */
+.board { margin: 0; padding: 0; list-style: none; border: 2px solid var(--ink); }
+.board .hd, .board li { display: grid; grid-template-columns: 64px minmax(0, 1.25fr) minmax(0, 1fr); }
+.board .hd { border-bottom: 2px solid var(--ink); font: 700 13px/1 var(--sans); }
+.board .hd span, .board li > * { padding: 10px 14px; }
+.board .hd span + span, .board li > * + * { border-left: 1.5px solid var(--ink); }
+.board li + li { border-top: 1.5px solid var(--ink); }
+.board .cut { font: 400 34px/1 var(--brush); text-align: center; padding-top: 18px; }
+.board .frame { padding: 14px; }
+.board .frame pre { margin: 0; border: 2.5px solid var(--ink); padding: 16px 16px; min-height: 92px; font-size: 13px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
+.board .frame pre .d { color: var(--ink-soft); }
+.board .what { font-size: 15px; padding-top: 16px; }
+.board .what b { font-family: var(--sans); }
+
+/* ===== 后记 ===== */
+.after { margin-top: 18px; border-top: 2px solid var(--ink); padding-top: 22px; display: flex; flex-direction: row-reverse; gap: 28px; align-items: flex-start; }
+.after h2 { margin: 0; font: 400 40px/1 var(--brush); writing-mode: vertical-rl; letter-spacing: .2em; }
+.after .text { writing-mode: vertical-rl; height: 330px; font: 400 16px/2 var(--serif); letter-spacing: .05em; margin: 0; }
+.after .text p { margin: 0 0 0 1.4em; }
+
+footer { max-width: 1180px; margin: 0 auto; padding: 22px 24px 40px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font: 400 13.5px/1.6 var(--serif); color: var(--ink-soft); }
+footer nav { display: flex; gap: 18px; }
+
+/* ===== 窄屏：格子竖着叠 ===== */
+@media (max-width: 860px) {
+  .page { grid-template-columns: minmax(0, 1fr); padding: 22px 16px 14px; }
+  .page > .chap { grid-column: 1; grid-row: auto; writing-mode: horizontal-tb; font-size: 30px; margin-bottom: 14px; letter-spacing: .04em; }
+  .page > .chap small { margin: 0 0 0 10px; letter-spacing: .1em; }
+  .page > .sheet { grid-row: auto; }
+  .top { padding: 14px 16px; }
+  .top nav { gap: 16px; }
+  .hide-sm { display: none; }
+  .k1, .k2, .k3, .k4, .k5, .k12, .step { grid-column: 1 / -1; grid-row: auto; }
+  .cover .koma { min-height: 0; display: flex; flex-direction: column; }
+  .cover h1 { position: relative; top: auto; right: auto; align-self: flex-end; padding: 16px 16px 0; }
+  .cover h1 .title { font-size: 88px; }
+  .cover h1 .sub { font-size: 17px; margin-top: 10px; }
+  .cover .ep { top: 16px; left: 16px; }
+  .cover .ep b { font-size: 24px; }
+  .villain { position: relative; left: auto; top: auto; transform: rotate(-2deg); width: auto; margin: 4px 6px 0; }
+  .villain .shout > span { padding: 52px 46px; font-size: 12.5px; }
+  .cover .lead { position: relative; left: auto; bottom: auto; width: auto; margin: 6px 14px 14px; }
+  .k1 { min-height: 0; padding: 16px 14px 14px; display: flex; flex-direction: column; gap: 14px; }
+  .k1 .cap, .k1 .bubble { position: relative; top: auto; right: auto; align-self: flex-end; }
+  .k1 .top-row { display: flex; flex-direction: row-reverse; gap: 12px; align-items: flex-start; }
+  .k1 .bubble { padding: 24px 20px; font-size: 18px; }
+  .pr { position: relative; left: auto; bottom: auto; width: auto; }
+  .k2 { min-height: 420px; }
+  .k2 .fx { font-size: 136px; }
+  .k2 .burst { width: 290px; height: 290px; }
+  .k3 { padding: 16px 14px 14px; }
+  .k3 .row1 { flex-direction: column-reverse; }
+  .k3 .cap.v-in { align-self: flex-end; }
+  .gauge dd { font-size: 34px; }
+  .queue { grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 2px; padding: 8px; }
+  .k4 { min-height: 0; padding: 16px 14px 18px; display: flex; flex-direction: column; gap: 6px; }
+  .k4 .cap { position: relative; top: auto; right: auto; align-self: flex-end; }
+  .k4 .cap.h { right: auto; bottom: auto; max-width: none; align-self: stretch; }
+  .k4 .shout { position: relative; left: auto !important; top: auto !important; bottom: auto !important; }
+  .k4 .shout.s1 { align-self: flex-start; }
+  .k4 .shout.s2 { align-self: flex-end; }
+  .k4 .shout.s3 { align-self: center; }
+  .k4 .fx.a { position: relative; left: auto; top: auto; font-size: 72px; align-self: flex-start; transform: rotate(-6deg); }
+  .k4 .fx.b { display: none; }
+  .k5 { min-height: 0; padding: 16px 12px 16px; display: flex; flex-direction: column; gap: 14px; }
+  .k5 .cap { position: relative; top: auto; right: auto; align-self: flex-end; }
+  .term { position: relative; left: auto; top: auto; transform: none; width: auto; }
+  .term pre { min-height: 0; font-size: 12px; }
+  .k5 .fx { display: none; }
+  .steps-head { flex-direction: column; align-items: stretch; }
+  .step { min-height: 0; }
+  .k12 { min-height: 0; padding: 26px 18px; display: flex; flex-direction: column; gap: 16px; }
+  .k12 .cap { position: relative; top: auto; right: auto; align-self: flex-end; }
+  .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .card .band { height: 74px; }
+  .card .band .g { font-size: 36px; }
+  .card dl { flex-direction: column; gap: 0; }
+  .board .hd { display: none; }
+  .board li { grid-template-columns: 48px minmax(0, 1fr); }
+  .board .cut { grid-row: span 2; font-size: 28px; padding: 14px 4px; }
+  .board .what { grid-column: 2; border-left: 1.5px solid var(--ink); padding-top: 0; }
+  .board .frame { padding-bottom: 10px; }
+  .after { flex-direction: column; gap: 14px; }
+  .after h2 { writing-mode: horizontal-tb; font-size: 32px; }
+  .after .text { writing-mode: horizontal-tb; height: auto; font-size: 15.5px; line-height: 1.9; }
+  .after .text p { margin: 0 0 1em; }
+  footer { padding: 18px 16px 34px; }
+}
+@media (min-width: 861px) { .k1 .top-row { display: contents; } }
+@media (prefers-reduced-motion: reduce) {
+  .cursor { animation: none; }
+  button:active { transform: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <a class="name" href="#">tern</a>
+  <nav aria-label="主导航">
+    <a href="#start">快速开始</a>
+    <a href="#" class="hide-sm">文档</a>
+    <a href="#">GitHub</a>
+  </nav>
+</header>
+
+<main>
+  <!-- 扉页 -->
+  <section class="page cover" aria-labelledby="cover-title">
+    <div class="sheet">
+      <div class="koma">
+        <div class="focus" aria-hidden="true"></div>
+        <div class="ep">tern<b>第一话</b></div>
+        <h1 id="cover-title"><span class="title">四十一秒</span><span class="sub">给 <span class="tcy">821</span> 万行的表加一列，所有请求排队 <span class="tcy">41</span> 秒。</span></h1>
+        <div class="villain">
+          <div class="shout"><span><b>0042_add_public_id.sql</b>ALTER TABLE orders
+  ADD COLUMN public_id uuid
+  NOT NULL DEFAULT gen_random_uuid();</span></div>
+        </div>
+        <div class="lead">
+          <p>tern 在迁移执行前算出每条语句会拿什么锁、挡住多久，并给出不锁表的改写方案。开源，支持 PostgreSQL 12 到 17。</p>
+          <div class="install"><code id="cmd">brew install tern-db/tap/tern</code><button type="button" id="copy">复制</button></div>
+          <a class="more" href="#start">四步接入现有项目</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 其一 -->
+  <section class="page" aria-labelledby="ch1">
+    <h2 class="chap" id="ch1">其一　出事<small>周五傍晚</small></h2>
+    <div class="sheet grid">
+      <figure class="koma k1">
+        <div class="dusk" aria-hidden="true"></div>
+        <div class="top-row">
+          <p class="cap">周五傍晚五点四十二分，<br>最后一个需求合进主干。</p>
+          <p class="bubble tail-bl">就加一列，<br>很快。</p>
+        </div>
+        <div class="pr">
+          <header><span>#318　给 orders 表加 public_id，对外接口不再暴露自增 id</span><span class="merged">已合并</span></header>
+          <div class="file">db/migrations/0042_add_public_id.sql</div>
+          <pre>ALTER TABLE orders ADD COLUMN public_id uuid NOT NULL DEFAULT gen_random_uuid();</pre>
+        </div>
+      </figure>
+
+      <figure class="koma k2">
+        <div class="burst" aria-hidden="true"></div>
+        <span class="fx" aria-hidden="true">咔</span>
+        <p class="cap">最重的一把锁，<br>连读都要排队。</p>
+        <span class="stamp">ACCESS EXCLUSIVE</span>
+        <p class="cap h">默认值 gen_random_uuid() 每行都不一样，PostgreSQL 只能把 8,214,330 行整表重写一遍。</p>
+      </figure>
+
+      <figure class="koma k3" id="k3">
+        <div class="speed" aria-hidden="true"></div>
+        <div class="row1">
+          <div>
+            <div class="switch" role="group" aria-label="切换迁移版本">
+              <button type="button" data-v="before" aria-pressed="true">原迁移</button>
+              <button type="button" data-v="after" aria-pressed="false">tern 改写后</button>
+            </div>
+            <dl class="gauges" aria-live="polite" style="margin:12px 0 0">
+              <div class="gauge"><dt>orders 表挡住读写</dt><dd><span id="g-sec">41.0</span><small>秒</small></dd></div>
+              <div class="gauge"><dt>排队的请求</dt><dd><span id="g-q">2,870</span><small>个</small></dd></div>
+            </dl>
+          </div>
+          <p class="cap v-in" id="q-cap">请求一个接一个<br>停在门口。</p>
+        </div>
+        <div class="queue" id="queue" aria-hidden="true"></div>
+        <p class="note" id="q-note">每个格子是 10 个被挡住的请求，按 orders 表每秒约 70 次读写估算；动画快放 10 倍。</p>
+      </figure>
+
+      <figure class="koma k4">
+        <span class="fx a" aria-hidden="true">叮铃铃</span>
+        <span class="fx b" aria-hidden="true">叮铃铃</span>
+        <div class="shout s1"><span>下单页<br>一直在转！</span></div>
+        <div class="shout s2"><span>支付回调<br>全失败了</span></div>
+        <div class="shout s3"><span>客服电话<br>接不过来</span></div>
+        <p class="cap"><span class="tcy">41</span> 秒后，<br>锁才放开。</p>
+        <p class="cap h">这 41 秒里，下单接口超时，支付平台的回调没有写进来，要第二天对账补单。</p>
+      </figure>
+    </div>
+    <div class="folio">2</div>
+  </section>
+
+  <!-- 其二 -->
+  <section class="page" aria-labelledby="ch2">
+    <h2 class="chap" id="ch2">其二　tern<small>合并之前</small></h2>
+    <div class="sheet grid">
+      <figure class="koma k5" id="k5">
+        <div class="focus" aria-hidden="true"></div>
+        <p class="cap">如果合并之前，<br>先跑一次——</p>
+        <div class="term">
+          <div class="bar"><span>~/shop-api</span><button type="button" id="replay">重新播放</button></div>
+          <pre id="screen" aria-label="tern plan 运行示例"></pre>
+        </div>
+        <span class="fx" aria-hidden="true">唰</span>
+      </figure>
+
+      <div class="steps-head">
+        <p><b>tern fix 0042</b> 把一条语句拆成六步。重的锁只在改表结构的瞬间出现，费时间的回填和校验都不挡读写。</p>
+      </div>
+
+      <figure class="koma step">
+        <span class="no" aria-label="第一步">一</span>
+        <pre>ALTER TABLE orders
+  ADD COLUMN public_id uuid;</pre>
+        <p class="explain">先加一个可空的列，只改表结构，不碰数据。</p>
+        <div class="lock">ACCESS EXCLUSIVE</div>
+        <div class="dur"><span class="ka" aria-hidden="true">咔</span>0.02 秒</div>
+      </figure>
+      <figure class="koma step">
+        <span class="no" aria-label="第二步">二</span>
+        <pre>ALTER TABLE orders
+  ALTER COLUMN public_id
+  SET DEFAULT gen_random_uuid();</pre>
+        <p class="explain">新写入的行从这一刻起自带 public_id。</p>
+        <div class="lock">ACCESS EXCLUSIVE</div>
+        <div class="dur"><span class="ka" aria-hidden="true">咔</span>0.01 秒</div>
+      </figure>
+      <figure class="koma step long">
+        <span class="no" aria-label="第三步">三</span>
+        <pre>UPDATE orders SET public_id = gen_random_uuid()
+ WHERE id BETWEEN $1 AND $2
+   AND public_id IS NULL;</pre>
+        <div class="batches" aria-hidden="true"></div>
+        <p class="explain">分 822 批回填旧数据，每批约一万行，只锁正在改的那一批行。</p>
+        <div class="lock">ROW EXCLUSIVE</div>
+        <div class="dur">38 秒<small>不挡读写</small></div>
+      </figure>
+      <figure class="koma step">
+        <span class="no" aria-label="第四步">四</span>
+        <pre>ALTER TABLE orders
+  ADD CONSTRAINT public_id_nn
+  CHECK (public_id IS NOT NULL) NOT VALID;</pre>
+        <p class="explain">加约束但先不检查旧数据，所以不用扫表。</p>
+        <div class="lock">ACCESS EXCLUSIVE</div>
+        <div class="dur"><span class="ka" aria-hidden="true">咔</span>0.01 秒</div>
+      </figure>
+      <figure class="koma step">
+        <span class="no" aria-label="第五步">五</span>
+        <pre>ALTER TABLE orders
+  VALIDATE CONSTRAINT public_id_nn;</pre>
+        <p class="explain">扫一遍全表，确认没有空值。这一步拿的锁很轻，读写照常。</p>
+        <div class="lock">SHARE UPDATE EXCLUSIVE</div>
+        <div class="dur">6.5 秒<small>不挡读写</small></div>
+      </figure>
+      <figure class="koma step">
+        <span class="no" aria-label="第六步">六</span>
+        <pre>ALTER TABLE orders
+  ALTER COLUMN public_id SET NOT NULL;</pre>
+        <p class="explain">已经验证过的约束让 PostgreSQL 跳过扫描，直接改成非空。</p>
+        <div class="lock">ACCESS EXCLUSIVE</div>
+        <div class="dur"><span class="ka" aria-hidden="true">咔</span>0.01 秒</div>
+      </figure>
+
+      <figure class="koma k12">
+        <p class="cap">这一次，<br>没有人发现上线过。</p>
+        <div class="calm">
+          <div class="big num">0.05<small>秒</small></div>
+          <p>orders 表被挡住读写的总时间，原来是 41 秒。迁移本身从 53 秒变成 57 秒，多出来的 4 秒花在不挡人的回填上。</p>
+        </div>
+      </figure>
+    </div>
+    <div class="folio">3</div>
+  </section>
+
+  <!-- 设定资料 -->
+  <section class="page" aria-labelledby="ch3">
+    <h2 class="chap" id="ch3">设定资料<small>八把锁</small></h2>
+    <div class="sheet">
+      <p class="intro">PostgreSQL 的表锁有八种，从轻到重排在下面。网点越密，锁越重。会挡写的有四种，连读都挡的只有最后一种，也就是第一话里的那一把。</p>
+      <div class="cards" id="cards"></div>
+      <p class="legend">每张卡下面的八个格子和卡片的排法一样，从右往左依次对应这八种锁；黑格表示两把锁不能同时拿：后来的那个要排队。</p>
+    </div>
+    <div class="folio">4</div>
+  </section>
+
+  <!-- 分镜 -->
+  <section class="page" id="start" aria-labelledby="ch4">
+    <h2 class="chap" id="ch4">分镜<small>接入四步</small></h2>
+    <div class="sheet">
+      <p class="intro">接入现有项目，不改任何迁移文件。支持 Flyway、golang-migrate、Prisma 和 Rails 生成的 SQL。</p>
+      <ol class="board">
+        <li class="hd" aria-hidden="true"><span>镜号</span><span>画面</span><span>说明</span></li>
+        <li><span class="cut">1</span><div class="frame"><pre>brew install tern-db/tap/tern
+docker run --rm ghcr.io/tern-db/tern:0.9 --help</pre></div><p class="what"><b>安装。</b>macOS 和 Linux 用 Homebrew，也可以直接用 Docker 镜像。</p></li>
+        <li><span class="cut">2</span><div class="frame"><pre>tern init --migrations ./db/migrations</pre></div><p class="what"><b>在项目根目录生成配置，</b>指向迁移文件所在的目录。</p></li>
+        <li><span class="cut">3</span><div class="frame"><pre>export TERN_DSN="postgres://readonly@replica:5432/shop"
+tern plan</pre></div><p class="what"><b>连一个只读副本，</b>跑第一次分析。它只读表结构和统计信息，不碰生产数据。</p></li>
+        <li><span class="cut">4</span><div class="frame"><pre><span class="d"># .github/workflows/migrate.yml</span>
+- run: tern plan --max-lock 2s --format github</pre></div><p class="what"><b>加进 CI。</b>有语句的锁超过 2 秒，退出码为 1，合并会被拦下。</p></li>
+      </ol>
+
+      <section class="after" aria-labelledby="ch5">
+        <h2 id="ch5">后记</h2>
+        <div class="text">
+          <p>这一话里的数字，来自一张 <span class="tcy">821</span> 万行、每秒约 <span class="tcy">70</span> 次读写的示例表。你的表有多大、有多忙，要自己跑一次 tern plan 才知道。</p>
+          <p>tern 目前还做不到的事：只支持 PostgreSQL <span class="tcy">12</span> 到 <span class="tcy">17</span>；MySQL 和 SQLite 还不支持，MySQL 在计划中；存储过程内部的 DDL 读不出来；Windows 上要通过 WSL 或 Docker 运行。</p>
+          <p>名字来自北极燕鸥，它每年迁徙约七万公里。</p>
+        </div>
+      </section>
+    </div>
+    <div class="folio">5</div>
+  </section>
+</main>
+
+<footer>
+  <span>tern，MIT 许可证。示例网站，项目、表和数字都是虚构的。</span>
+  <nav aria-label="页脚"><a href="#">文档</a><a href="#">更新日志</a><a href="#">GitHub</a></nav>
+</footer>
+
+<script>
+(function () {
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* 复制安装命令 */
+  var copy = document.getElementById('copy');
+  copy.addEventListener('click', function () {
+    var done = function () { copy.textContent = '已复制'; setTimeout(function () { copy.textContent = '复制'; }, 1600); };
+    try { navigator.clipboard.writeText(document.getElementById('cmd').textContent).then(done, done); } catch (e) { done(); }
+  });
+
+  /* 排队：288 格，每格 10 个请求，约 70 次每秒 */
+  var RATE = 70, PER = 10, CELLS = 288;
+  var queue = document.getElementById('queue'), cells = [];
+  for (var i = 0; i < CELLS; i++) { var c = document.createElement('i'); queue.appendChild(c); cells.push(c); }
+  var gSec = document.getElementById('g-sec'), gQ = document.getElementById('g-q');
+  var qCap = document.getElementById('q-cap');
+  var state = 'before', raf = 0;
+  function paint(sec, v) {
+    var req = Math.round(sec * RATE), full = Math.floor(req / PER);
+    gSec.textContent = sec.toFixed(sec < 1 ? 2 : 1);
+    gQ.textContent = v === 'after' ? '约 ' + Math.ceil(sec * RATE) : req.toLocaleString('en-US');
+    cells.forEach(function (c, k) { c.className = k < full ? 'on' : (k === full && req % PER ? 'part' : ''); });
+  }
+  function run(v) {
+    cancelAnimationFrame(raf);
+    var target = v === 'before' ? 41 : 0.05;
+    qCap.innerHTML = v === 'before' ? '请求一个接一个<br>停在门口。' : '几乎没有人<br>需要等。';
+    if (reduce || v === 'after') { paint(target, v); return; }
+    var t0 = performance.now(), dur = target * 100; /* 快放 10 倍 */
+    (function tick(now) {
+      var p = Math.min(1, (now - t0) / dur);
+      paint(target * p, v);
+      if (p < 1) raf = requestAnimationFrame(tick);
+    })(t0);
+  }
+  document.querySelectorAll('.switch button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      state = b.dataset.v;
+      document.querySelectorAll('.switch button').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
+      run(state);
+    });
+  });
+  paint(41, 'before');
+
+  /* 终端 */
+  var screen = document.getElementById('screen'), P = '<span class="d">$</span> ';
+  var script = [
+    ['cmd', 'tern plan --max-lock 2s'],
+    ['out', '<span class="d">读取 db/migrations，找到 2 个待执行迁移</span>', 450],
+    ['out', '<span class="d">连接 replica:5432/shop，读取表统计信息</span>', 600],
+    ['out', '', 150],
+    ['out', '<span class="ok">通过</span>  0041_index_sku.sql', 250],
+    ['out', '      CREATE INDEX CONCURRENTLY idx_sku ON products (sku);', 120],
+    ['out', '      <span class="d">SHARE UPDATE EXCLUSIVE，不挡读写，预计 12 秒</span>', 500],
+    ['out', '', 150],
+    ['out', '<span class="bad">失败</span>  0042_add_public_id.sql', 250],
+    ['out', '      ALTER TABLE orders ADD COLUMN public_id uuid NOT NULL DEFAULT gen_random_uuid();', 120],
+    ['out', '      ACCESS EXCLUSIVE，默认值不是常量，需要重写 8,214,330 行，预计挡住读写 41 秒', 550],
+    ['out', '', 150],
+    ['out', '<span class="tip">建议</span>  拆成六步，每步锁在 1 秒以内', 300],
+    ['out', '      运行 tern fix 0042 生成改写后的迁移文件', 500],
+    ['out', '', 150],
+    ['out', '1 个问题超过上限（2 秒），退出码 1', 300],
+    ['end']
+  ];
+  var tRun = 0, timer;
+  function draw(lines, typing) { screen.innerHTML = lines.join('\n') + (lines.length ? '\n' : '') + P + (typing || '') + '<span class="cursor"></span>'; }
+  function play() {
+    var id = ++tRun, lines = [], i = 0; clearTimeout(timer);
+    if (reduce) { script.forEach(function (s) { if (s[0] === 'cmd') lines.push(P + s[1]); else if (s[0] === 'out') lines.push(s[1]); }); draw(lines, ''); return; }
+    function step() {
+      if (id !== tRun || i >= script.length) return;
+      var s = script[i];
+      if (s[0] === 'end') { draw(lines, ''); return; }
+      if (s[0] === 'cmd') {
+        var k = 0;
+        (function type() { if (id !== tRun) return; draw(lines, s[1].slice(0, k)); if (k++ < s[1].length) timer = setTimeout(type, 55 + Math.random() * 50); else timer = setTimeout(function () { lines.push(P + s[1]); i++; step(); }, 350); })();
+      } else { lines.push(s[1]); draw(lines, ''); i++; timer = setTimeout(step, s[2]); }
+    }
+    step();
+  }
+  document.getElementById('replay').addEventListener('click', play);
+  draw([], '');
+
+  /* 进入视野时开始播放 */
+  if ('IntersectionObserver' in window) {
+    var seen = {};
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (!e.isIntersecting || seen[e.target.id]) return;
+        seen[e.target.id] = 1;
+        if (e.target.id === 'k3' && state === 'before') run('before');
+        if (e.target.id === 'k5') play();
+      });
+    }, { threshold: .45 });
+    io.observe(document.getElementById('k3')); io.observe(document.getElementById('k5'));
+  } else { play(); }
+
+  /* 设定资料：八种表锁。冲突关系来自 PostgreSQL 文档的锁冲突表 */
+  var locks = [
+    ['读', 'ACCESS SHARE', 'SELECT', [0,0,0,0,0,0,0,1]],
+    ['锁行', 'ROW SHARE', 'SELECT … FOR UPDATE / FOR SHARE', [0,0,0,0,0,0,1,1]],
+    ['写', 'ROW EXCLUSIVE', 'INSERT、UPDATE、DELETE、MERGE', [0,0,0,0,1,1,1,1]],
+    ['维护', 'SHARE UPDATE EXCLUSIVE', 'VACUUM、ANALYZE、CREATE INDEX CONCURRENTLY、VALIDATE CONSTRAINT', [0,0,0,1,1,1,1,1]],
+    ['建索引', 'SHARE', 'CREATE INDEX（不带 CONCURRENTLY）', [0,0,1,1,0,1,1,1]],
+    ['触发器', 'SHARE ROW EXCLUSIVE', 'CREATE TRIGGER、ADD FOREIGN KEY', [0,0,1,1,1,1,1,1]],
+    ['刷新', 'EXCLUSIVE', 'REFRESH MATERIALIZED VIEW CONCURRENTLY', [0,1,1,1,1,1,1,1]],
+    ['独占', 'ACCESS EXCLUSIVE', 'DROP TABLE、TRUNCATE、VACUUM FULL、大多数 ALTER TABLE', [1,1,1,1,1,1,1,1]]
+  ];
+  var tones = ['', 'var(--tone-1)', 'var(--tone-1)', 'var(--tone-2)', 'var(--tone-2)', 'var(--tone-3)', 'var(--tone-4)', 'var(--ink)'];
+  var names = locks.map(function (l) { return l[1]; });
+  document.getElementById('cards').innerHTML = locks.map(function (l, n) {
+    var reads = l[3][0], writes = l[3][2];
+    var hits = l[3].map(function (x, j) { return '<i class="' + (x ? 'x' : '') + '" title="' + names[j] + (x ? '：冲突' : '：可共存') + '"></i>'; }).join('');
+    return '<article class="card' + (n === 7 ? ' boss' : '') + '">' +
+      '<div class="band" style="background:' + (tones[n] || 'var(--paper)') + '"><span class="g">' + l[0] + '</span></div>' +
+      '<div class="body"><h3>' + l[1] + '</h3><p class="who">' + l[2] + '</p>' +
+      (n === 7 ? '<span class="tag">第一话里的那一把</span>' : '') +
+      '<div class="hits" role="img" aria-label="与 ' + l[3].reduce(function (a, b) { return a + b; }, 0) + ' 种锁冲突">' + hits + '</div>' +
+      '<dl><div><dt>挡读</dt><dd>' + (reads ? '是' : '否') + '</dd></div><div><dt>挡写</dt><dd>' + (writes ? '是' : '否') + '</dd></div></dl></div></article>';
+  }).join('');
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#CDB18C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#2A231C" media="(prefers-color-scheme: dark)">
+<title>野径咖啡：本周四烘焙的三支豆子</title>
+<meta name="description" content="野径咖啡每周四在杭州文三路烘焙，周五寄出。本周：云南保山、埃塞俄比亚古吉、周日拼配。">
+<!--
+【模式】说服：熟客每周来看本周豆子并下单，多数用手机。从零做的演示，品牌与数据均为虚构（页脚已注明）。
+
+【第三版的问题】三个示例网站都长成了同一个样子：白底、中性灰、胶囊按钮、浅色圆角面板。"大厂参照"成了新的默认值。
+
+【盘点：只属于野径的东西】
+1. 豆子装在牛皮纸袋里，袋子上贴一张彩色标签，手写烘焙日期
+2. 每支豆子一个标签色：保山橙、古吉桃、周日棕
+3. 每周四下午烘豆，周五顺丰寄出
+4. 每一炉都有烘焙曲线，大约第 9 分钟一爆
+5. 杯测分和杯测笔记
+6. 保山潞江坝杨家农场，第三年合作，收购价高四成；今年雨下了五天
+7. 文三路 218 号院，南门进左手第二家；周四下午整条巷子都是香味
+
+【论证】
+首屏：这周的豆子是新鲜的，现在就能买 → 牛皮纸底上的三条烘焙曲线 + 三只豆袋直接加入购物袋
+豆子：每支都说得清来路和味道 → 每支豆子占一整块自己的标签色：产地、海拔、处理、杯测分、笔记
+产地：我们认识种豆子的人 → 杨家的故事和四个数字
+订阅、时间表与门店 → 可算价格的订阅、每周时间表、怎么走
+
+【方案】
+颜色：牛皮纸 #CDB18C（首屏底色，来自豆袋）/ 墨色 #1E1A15 / 白 #FFFFFF / 次要 #6B6459
+      标签色整块使用：保山 #E59A3C / 古吉 #EBB8A9 / 周日 #6E4B3C
+字体：Bricolage Grotesque（数字与拉丁字母，有手工感但不做旧）+ 思源黑体
+自检：牛皮纸来自真实的豆袋，没有配衬线字和陶土色；没有小标签、编号、中点、箭头；
+      第三版的白底面板只保留在订阅和时间表这类"操作"区域
+
+【占位清单】
+- 未接通：「加入购物袋」只在页面内计数；「开始订阅」「到货时通知我」未接后端
+- 示例内容：品牌、农场、人物、数字均为虚构
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --kraft: #CDB18C; --kraft-2: #C2A47C; --ink: #1E1A15; --ink-2: #4A4136; --ink-3: rgba(30,26,21,.32); --ink-line: rgba(30,26,21,.16);
+    --bg: #FFFFFF; --panel: #F5F3EF; --text: #1E1A15; --text-2: #6B6459; --line: rgba(0,0,0,.09); --ring: 0 0 0 1px rgba(0,0,0,.08);
+    --baoshan: #E59A3C; --guji: #EBB8A9; --sunday: #6E4B3C;
+    --on-light: #1E1A15; --on-light-2: rgba(30,26,21,.72); --on-dark: #FBF4EC; --on-dark-2: rgba(251,244,236,.74);
+    --c-guji-line: #C46F58;
+    --wght: 400;
+    --font: "Bricolage Grotesque", "Noto Sans SC", -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --kraft: #2A231C; --kraft-2: #332A21; --ink: #F1E7DA; --ink-2: #CBBDAA; --ink-3: rgba(241,231,218,.36); --ink-line: rgba(241,231,218,.14);
+      --bg: #141210; --panel: #1E1B18; --text: #EEE8E0; --text-2: #A69C90; --line: rgba(255,255,255,.1); --ring: 0 0 0 1px rgba(255,255,255,.1);
+      --baoshan: #A86B26; --guji: #9C6F63; --sunday: #3E2A21;
+      --on-light: #FBF4EC; --on-light-2: rgba(251,244,236,.76);
+      --c-guji-line: #E59C86;
+      --wght: 360;
+    }
+    .bag { filter: brightness(.88); }
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scrollbar-color: var(--text-2) transparent; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-weight: var(--wght); font-size: 16px; line-height: 1.7; -webkit-font-smoothing: antialiased; }
+  ::selection { background: #1E1A15; color: #CDB18C; }
+  input, button { caret-color: var(--baoshan); }
+  a { color: inherit; text-underline-offset: 4px; }
+  :focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 6px; }
+  h1, h2, h3 { text-wrap: balance; }
+  p { text-wrap: pretty; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 28px; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 46px; padding: 0 22px; border-radius: 999px; border: 0; background: var(--ink); color: var(--kraft); font: 600 15px/1 var(--font); text-decoration: none; cursor: pointer; transition: opacity .12s ease-out, transform .1s ease-out; white-space: nowrap; }
+  .btn:hover { opacity: .88; }
+  .btn:active { transform: scale(.96); }
+  .btn.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink-3); }
+  .btn.ghost:hover { box-shadow: inset 0 0 0 1.5px var(--ink); opacity: 1; }
+  .btn[aria-pressed="true"] { background: transparent; color: inherit; box-shadow: inset 0 0 0 1.5px currentColor; }
+
+  /* 首屏：牛皮纸 */
+  .kraft { background: var(--kraft); color: var(--ink); }
+  header .wrap { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+  .brand { font-weight: 700; font-size: 18px; text-decoration: none; letter-spacing: .06em; }
+  nav { display: flex; align-items: center; gap: 2px; font-size: 15px; }
+  nav a { text-decoration: none; color: var(--ink-2); padding: 8px 12px; border-radius: 8px; }
+  nav a:hover { color: var(--ink); background: rgba(0,0,0,.06); }
+  @media (prefers-color-scheme: dark) { nav a:hover { background: rgba(255,255,255,.06); } }
+  .bag-link { color: var(--ink) !important; display: inline-flex; gap: 6px; align-items: center; }
+  .bag-link b { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--ink); color: var(--kraft); font-size: 12px; display: inline-flex; align-items: center; justify-content: center; }
+
+  .hero { display: grid; grid-template-columns: 1fr 1.1fr; gap: 56px; align-items: end; padding-top: 40px; padding-bottom: 40px; }
+  .stamp { display: inline-block; font-size: 14px; font-weight: 600; border: 1.5px solid var(--ink); border-radius: 6px; padding: 2px 10px; margin: 0 0 22px; transform: rotate(-2deg); }
+  .hero h1 { font-size: clamp(42px, 5.4vw, 70px); line-height: 1.02; font-weight: 700; letter-spacing: -0.035em; margin: 0 0 22px; }
+  .hero h1 .ph { display: inline-block; }
+  .hero p { color: var(--ink-2); font-size: 18px; margin: 0; max-width: 24em; }
+
+  .curve-wrap figcaption { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--ink-2); margin-bottom: 6px; flex-wrap: wrap; }
+  .curve-wrap figcaption b { color: var(--ink); font-weight: 600; font-size: 14px; }
+  #curve { display: block; width: 100%; height: auto; overflow: visible; }
+  #curve .grid line { stroke: var(--ink-line); }
+  #curve .axis text { font-family: var(--font); font-size: 11px; fill: var(--ink-2); font-variant-numeric: tabular-nums; }
+  #curve .crack { fill: var(--ink); opacity: .07; }
+  #curve .crack-l { font-family: var(--font); font-size: 12px; font-weight: 600; fill: var(--ink-2); }
+  #curve .curve { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; transition: opacity .15s; }
+  #curve .curve.dim { opacity: .15; }
+  #curve .end-l { font-family: var(--font); font-size: 12px; font-weight: 600; }
+
+  .shelf { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding-bottom: 64px; }
+  .tile { display: grid; grid-template-columns: 72px 1fr; gap: 14px; align-items: center; padding: 14px 16px 14px 12px; border-radius: 16px; background: rgba(255,255,255,.28); }
+  @media (prefers-color-scheme: dark) { .tile { background: rgba(255,255,255,.05); } }
+  .tile .bag { width: 72px; }
+  .tile h3 { margin: 0; font-size: 17px; font-weight: 700; line-height: 1.3; }
+  .tile .meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 6px; }
+  .tile .price { font-weight: 700; font-size: 18px; }
+  .tile .btn { height: 36px; padding: 0 14px; font-size: 13px; }
+  .tile:hover { background: rgba(255,255,255,.4); }
+  @media (prefers-color-scheme: dark) { .tile:hover { background: rgba(255,255,255,.08); } }
+
+  /* 每支豆子一整块标签色 */
+  .band { padding: 96px 0; }
+  .band .wrap { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 64px; align-items: center; }
+  .band.light { color: var(--on-light); }
+  .band.dark { color: var(--on-dark); }
+  .band.baoshan { background: var(--baoshan); }
+  .band.guji { background: var(--guji); }
+  .band.sunday { background: var(--sunday); }
+  .band .pic { display: flex; justify-content: center; }
+  .band .pic .bag { width: min(260px, 70%); filter: drop-shadow(0 18px 30px rgba(0,0,0,.18)); }
+  .band h2 { font-size: clamp(38px, 4.6vw, 60px); line-height: 1.05; font-weight: 700; letter-spacing: -0.03em; margin: 0 0 6px; }
+  .band .origin { font-size: 17px; margin: 0 0 28px; opacity: .78; }
+  .band .cols { display: grid; grid-template-columns: auto 1fr; gap: 40px; align-items: start; }
+  .score { font-size: 68px; line-height: .9; font-weight: 700; letter-spacing: -0.04em; }
+  .score small { display: block; font-size: 13px; font-weight: 500; letter-spacing: 0; margin-top: 10px; opacity: .72; }
+  .notes { font-size: 21px; line-height: 1.55; margin: 0 0 20px; max-width: 22em; }
+  .facts { display: grid; grid-template-columns: repeat(4, auto); gap: 4px 24px; margin: 0; font-size: 14px; justify-content: start; }
+  .facts dt { opacity: .68; }
+  .facts dd { margin: 0; font-weight: 600; }
+  .facts div { display: flex; flex-direction: column; }
+  .buy { display: flex; align-items: center; gap: 20px; margin-top: 32px; padding-top: 24px; border-top: 1.5px solid currentColor; border-color: rgba(30,26,21,.2); flex-wrap: wrap; }
+  .band.dark .buy { border-color: rgba(251,244,236,.22); }
+  @media (prefers-color-scheme: dark) { .band.light .buy { border-color: rgba(251,244,236,.22); } }
+  .buy .price { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
+  .buy .price small { font-size: 14px; font-weight: 400; opacity: .72; margin-left: 2px; }
+  .buy .stock { font-size: 14px; opacity: .8; }
+  .buy .btn { margin-left: auto; }
+  .band.light .btn { background: #1E1A15; color: #FBF4EC; }
+  .band.dark .btn, :is(.band.light) .btn.on-dark { background: #FBF4EC; color: #2B1E17; }
+  @media (prefers-color-scheme: dark) { .band.light .btn { background: #FBF4EC; color: #2B1E17; } }
+  .band .btn[aria-pressed="true"] { background: transparent; color: inherit; box-shadow: inset 0 0 0 1.5px currentColor; }
+
+  .soldout { background: var(--panel); }
+  .soldout .wrap { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-top: 22px; padding-bottom: 22px; flex-wrap: wrap; }
+  .soldout p { margin: 0; }
+  .soldout span { color: var(--text-2); }
+  .soldout .btn { background: var(--text); color: var(--bg); height: 40px; font-size: 14px; }
+  .soldout .btn:disabled { background: transparent; color: var(--text-2); box-shadow: var(--ring); cursor: default; transform: none; }
+
+  /* 产地 */
+  section { padding: 112px 0; }
+  h2.sec { font-size: clamp(32px, 3.8vw, 48px); line-height: 1.15; font-weight: 700; letter-spacing: -0.03em; margin: 0 0 24px; }
+  .origin-sec .wrap { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 72px; }
+  .origin-sec p { font-size: 18px; line-height: 1.85; margin: 0 0 1em; max-width: 32em; }
+  .origin-sec blockquote { margin: 32px 0 0; font-size: 24px; line-height: 1.55; font-weight: 600; letter-spacing: -0.01em; max-width: 22em; }
+  .origin-sec cite { display: block; font-style: normal; font-size: 15px; font-weight: 400; color: var(--text-2); margin-top: 12px; }
+  .ledger { margin: 0; }
+  .ledger div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 20px 0; border-bottom: 1px solid var(--line); }
+  .ledger div:first-child { padding-top: 0; }
+  .ledger dt { color: var(--text-2); }
+  .ledger dd { margin: 0; font-size: 34px; font-weight: 700; letter-spacing: -0.03em; }
+  .ledger dd small { font-size: 15px; font-weight: 400; color: var(--text-2); margin-left: 3px; letter-spacing: 0; }
+
+  /* 订阅 */
+  .sub-sec { background: var(--panel); }
+  .sub { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: start; }
+  .sub .intro p { color: var(--text-2); margin: 0 0 20px; max-width: 26em; font-size: 17px; }
+  .sub .intro ul { margin: 0; padding: 0; list-style: none; }
+  .sub .intro li { padding: 12px 0; border-top: 1px solid var(--line); }
+  .picker { border-radius: 20px; background: var(--bg); box-shadow: var(--ring); padding: 28px; }
+  fieldset { border: 0; margin: 0 0 22px; padding: 0; }
+  legend { font-size: 14px; color: var(--text-2); margin-bottom: 10px; padding: 0; }
+  .seg { display: flex; background: var(--panel); border-radius: 12px; padding: 4px; gap: 4px; }
+  .seg label { flex: 1; position: relative; }
+  .seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .seg span { display: block; text-align: center; padding: 9px 6px; border-radius: 8px; font-size: 14px; color: var(--text-2); transition: background-color .12s, color .12s; pointer-events: none; }
+  .seg input:checked + span { background: var(--bg); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.1), 0 0 0 1px rgba(0,0,0,.04); font-weight: 600; }
+  .seg input:focus-visible + span { outline: 2px solid var(--text); outline-offset: 1px; }
+  .total { display: flex; justify-content: space-between; align-items: baseline; border-top: 1px solid var(--line); padding-top: 20px; margin: 4px 0 20px; }
+  .total b { font-size: 36px; font-weight: 700; letter-spacing: -0.03em; }
+  .total span { color: var(--text-2); font-size: 14px; }
+  .picker .btn { width: 100%; background: var(--text); color: var(--bg); }
+
+  /* 时间表与门店 */
+  .visit { display: grid; grid-template-columns: 1.2fr 1fr; gap: 64px; }
+  .timeline { list-style: none; margin: 0; padding: 0; }
+  .timeline li { display: grid; grid-template-columns: 88px 72px 1fr; gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--line); align-items: baseline; }
+  .timeline .day { font-weight: 700; }
+  .timeline .time { color: var(--text-2); }
+  .timeline li.now .day::after { content: "今天"; margin-left: 8px; font-size: 12px; font-weight: 600; color: #6B4313; background: rgba(229,154,60,.28); padding: 2px 8px; border-radius: 999px; }
+  @media (prefers-color-scheme: dark) { .timeline li.now .day::after { color: #F2C08A; } }
+  .place h3 { font-size: 14px; font-weight: 500; color: var(--text-2); margin: 0 0 6px; }
+  .place p { margin: 0 0 24px; font-size: 18px; }
+
+  footer { background: var(--kraft); color: var(--ink); padding: 28px 0 40px; font-size: 14px; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 12px); background: var(--ink); color: var(--kraft); padding: 10px 18px; border-radius: 999px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .15s ease-out, transform .2s cubic-bezier(0,0,.38,.9); z-index: 10; }
+  @media (prefers-color-scheme: dark) { .toast { background: #F1E7DA; color: #2A231C; } }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (max-width: 900px) {
+    .hero, .band .wrap, .origin-sec .wrap, .sub, .visit { grid-template-columns: 1fr; gap: 32px; }
+    .hero { padding-top: 16px; }
+    .shelf { grid-template-columns: 1fr; gap: 10px; padding-bottom: 48px; }
+    .band { padding: 64px 0; }
+    .band .pic .bag { width: 160px; }
+    .band .cols { grid-template-columns: 1fr; gap: 16px; }
+    .score { font-size: 56px; }
+    .facts { grid-template-columns: repeat(2, auto); }
+    section { padding: 72px 0; }
+    nav a:not(.bag-link) { display: none; }
+  }
+  @media (max-width: 480px) {
+    .wrap { padding-left: 18px; padding-right: 18px; }
+    .buy .btn { margin-left: 0; width: 100%; }
+    .picker { padding: 20px; }
+    .timeline li { grid-template-columns: 64px 56px 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="kraft">
+  <header>
+    <div class="wrap">
+      <a class="brand" href="#">野径咖啡</a>
+      <nav aria-label="主导航">
+        <a href="#beans">本周豆子</a>
+        <a href="#origin">产地</a>
+        <a href="#subscribe">订阅</a>
+        <a href="#visit">门店</a>
+        <a href="#" class="bag-link">购物袋 <b id="count" class="num">0</b></a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrap hero">
+    <div>
+      <p class="stamp num">10.22 周四出炉</p>
+      <h1><span class="ph">这周烘了三炉，</span><span class="ph">周五寄出。</span></h1>
+      <p>我们每周四按订单烘焙，豆子到你手上时，离出炉不超过三天。右边是这三炉的烘焙曲线，点豆子名字可以单独看一条。</p>
+    </div>
+    <figure class="curve-wrap" style="margin:0">
+      <figcaption><b>本周烘焙曲线</b><span>豆温，每 15 秒记录一次</span></figcaption>
+      <svg id="curve" viewBox="0 0 640 330" role="img" aria-label="三炉豆子的烘焙曲线：古吉 10 分钟出炉约 204 度，保山 11 分钟约 208 度，周日拼配 12 分钟约 212 度，三炉都在 9 分钟左右一爆"></svg>
+    </figure>
+  </div>
+
+  <div class="wrap shelf" id="shelf">
+    <div class="tile" data-k="guji">
+      <svg class="bag" viewBox="0 0 120 170" aria-hidden="true"><use href="#bag-shape"/><rect x="24" y="66" width="72" height="62" rx="4" fill="#EBB8A9"/><text x="60" y="102" text-anchor="middle" font-size="13" font-weight="700" fill="#1E1A15">古吉</text></svg>
+      <div><h3>古吉罕贝拉</h3><div class="meta"><span class="price num">¥96</span><button class="btn" data-name="古吉罕贝拉" aria-pressed="false">加入购物袋</button></div></div>
+    </div>
+    <div class="tile" data-k="baoshan">
+      <svg class="bag" viewBox="0 0 120 170" aria-hidden="true"><use href="#bag-shape"/><rect x="24" y="66" width="72" height="62" rx="4" fill="#E59A3C"/><text x="60" y="102" text-anchor="middle" font-size="13" font-weight="700" fill="#1E1A15">保山</text></svg>
+      <div><h3>保山杨家农场</h3><div class="meta"><span class="price num">¥78</span><button class="btn" data-name="保山杨家农场" aria-pressed="false">加入购物袋</button></div></div>
+    </div>
+    <div class="tile" data-k="sunday">
+      <svg class="bag" viewBox="0 0 120 170" aria-hidden="true"><use href="#bag-shape"/><rect x="24" y="66" width="72" height="62" rx="4" fill="#6E4B3C"/><text x="60" y="102" text-anchor="middle" font-size="13" font-weight="700" fill="#FBF4EC">周日</text></svg>
+      <div><h3>周日拼配</h3><div class="meta"><span class="price num">¥62</span><button class="btn" data-name="周日拼配" aria-pressed="false">加入购物袋</button></div></div>
+    </div>
+  </div>
+</div>
+
+<main id="beans">
+  <article class="band light baoshan" aria-labelledby="b1">
+    <div class="wrap">
+      <div class="pic"><svg class="bag" viewBox="0 0 120 170" aria-hidden="true"><use href="#bag-shape"/><rect x="24" y="66" width="72" height="62" rx="4" fill="#E59A3C" stroke="rgba(0,0,0,.12)"/><text x="60" y="98" text-anchor="middle" font-size="13" font-weight="700" fill="#1E1A15">保山</text><text x="60" y="114" text-anchor="middle" font-size="7" fill="#1E1A15" opacity=".7">10.22 烘焙</text></svg></div>
+      <div>
+        <h2 id="b1">保山杨家农场</h2>
+        <p class="origin">中国云南潞江坝，海拔 1,650 米</p>
+        <div class="cols">
+          <div class="score num">85.5<small>杯测分</small></div>
+          <div>
+            <p class="notes">红糖、烤杏仁，收尾有一点干橙皮。放凉之后更甜。</p>
+            <dl class="facts"><div><dt>品种</dt><dd>卡蒂姆</dd></div><div><dt>处理</dt><dd>日晒</dd></div><div><dt>烘焙</dt><dd>中烘 11 分钟</dd></div><div><dt>适合</dt><dd>手冲、法压</dd></div></dl>
+          </div>
+        </div>
+        <div class="buy"><span class="price num">¥78<small>/ 200g</small></span><span class="stock">只剩 9 包</span><button class="btn" data-name="保山杨家农场" aria-pressed="false">加入购物袋</button></div>
+      </div>
+    </div>
+  </article>
+
+  <article class="band light guji" aria-labelledby="b2">
+    <div class="wrap">
+      <div class="pic"><svg class="bag" viewBox="0 0 120 170" aria-hidden="true"><use href="#bag-shape"/><rect x="24" y="66" width="72" height="62" rx="4" fill="#EBB8A9" stroke="rgba(0,0,0,.12)"/><text x="60" y="98" text-anchor="middle" font-size="13" font-weight="700" fill="#1E1A15">古吉</text><text x="60" y="114" text-anchor="middle" font-size="7" fill="#1E1A15" opacity=".7">10.22 烘焙</text></svg></div>
+      <div>
+        <h2 id="b2">古吉罕贝拉</h2>
+        <p class="origin">埃塞俄比亚古吉产区，海拔 2,100 米</p>
+        <div class="cols">
+          <div class="score num">87.0<small>杯测分</small></div>
+          <div>
+            <p class="notes">茉莉花、白桃、佛手柑。酸质明亮但不尖，像一杯淡淡的花茶。</p>
+            <dl class="facts"><div><dt>品种</dt><dd>原生种</dd></div><div><dt>处理</dt><dd>水洗</dd></div><div><dt>烘焙</dt><dd>浅烘 10 分钟</dd></div><div><dt>适合</dt><dd>手冲</dd></div></dl>
+          </div>
+        </div>
+        <div class="buy"><span class="price num">¥96<small>/ 200g</small></span><span class="stock">剩 31 包</span><button class="btn" data-name="古吉罕贝拉" aria-pressed="false">加入购物袋</button></div>
+      </div>
+    </div>
+  </article>
+
+  <article class="band dark sunday" aria-labelledby="b3">
+    <div class="wrap">
+      <div class="pic"><svg class="bag" viewBox="0 0 120 170" aria-hidden="true"><use href="#bag-shape"/><rect x="24" y="66" width="72" height="62" rx="4" fill="#6E4B3C" stroke="rgba(255,255,255,.2)"/><text x="60" y="98" text-anchor="middle" font-size="13" font-weight="700" fill="#FBF4EC">周日</text><text x="60" y="114" text-anchor="middle" font-size="7" fill="#FBF4EC" opacity=".8">10.22 烘焙</text></svg></div>
+      <div>
+        <h2 id="b3">周日拼配</h2>
+        <p class="origin">哥伦比亚薇拉 70%，巴西南米纳斯 30%</p>
+        <div class="cols">
+          <div class="score num">84.0<small>杯测分</small></div>
+          <div>
+            <p class="notes">牛奶巧克力、焦糖、榛子。加奶也不会被盖住，店里的拿铁一直用它。</p>
+            <dl class="facts"><div><dt>品种</dt><dd>卡杜拉、黄波旁</dd></div><div><dt>处理</dt><dd>水洗、半日晒</dd></div><div><dt>烘焙</dt><dd>中深烘 12 分钟</dd></div><div><dt>适合</dt><dd>意式、摩卡壶</dd></div></dl>
+          </div>
+        </div>
+        <div class="buy"><span class="price num">¥62<small>/ 200g</small></span><span class="stock">剩 54 包</span><button class="btn" data-name="周日拼配" aria-pressed="false">加入购物袋</button></div>
+      </div>
+    </div>
+  </article>
+
+  <div class="soldout">
+    <div class="wrap">
+      <p>巴拿马瑰夏，翡翠庄园 <span>这周已经卖完，下一批 11 月 5 日烘焙。</span></p>
+      <button class="btn" id="notify" type="button">到货时通知我</button>
+    </div>
+  </div>
+
+  <section class="origin-sec" id="origin">
+    <div class="wrap">
+      <div>
+        <h2 class="sec">保山那一周，<br>我们一直在等太阳。</h2>
+        <p>今年十月，潞江坝下了整整五天雨。杨家晒架上铺满了刚摘的红果，盖着塑料布，每隔两小时就要有人去翻一次。杨大哥说，日晒豆最怕的不是雨，而是雨停后那一阵闷热，果子会一夜之间发酵过头。</p>
+        <p>我们原本只打算待两天，最后留了一周。第六天出了太阳，整个村子的人都上了屋顶。杯子里那点像红糖一样的甜，就是从那几天来的。</p>
+        <blockquote>“好的日晒豆是看天吃饭。我们能做的，只是别让它坏掉。”<cite>杨建华，杨家农场</cite></blockquote>
+      </div>
+      <dl class="ledger num">
+        <div><dt>和杨家合作</dt><dd>第 3<small>年</small></dd></div>
+        <div><dt>今年的收购价，比当地市场价</dt><dd>高 40<small>%</small></dd></div>
+        <div><dt>今年收下的生豆</dt><dd>1,200<small>公斤</small></dd></div>
+        <div><dt>等太阳的日子</dt><dd>5<small>天</small></dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="sub-sec" id="subscribe">
+    <div class="wrap sub">
+      <div class="intro">
+        <h2 class="sec">不想每周来抢，<br>我们定期寄给你。</h2>
+        <p>订阅的豆子在每周四烘焙后优先发货。</p>
+        <ul>
+          <li>随时暂停、跳过一次或取消，不收任何费用</li>
+          <li>寄送前一天短信提醒，可以临时换豆子</li>
+          <li>顺丰包邮，江浙沪次日到</li>
+        </ul>
+      </div>
+      <form class="picker" id="picker" onsubmit="return false">
+        <fieldset><legend>寄什么</legend><div class="seg">
+          <label><input type="radio" name="kind" value="72" checked><span>烘焙师挑选</span></label>
+          <label><input type="radio" name="kind" value="62"><span>周日拼配</span></label>
+          <label><input type="radio" name="kind" value="96"><span>浅烘单品</span></label>
+        </div></fieldset>
+        <fieldset><legend>每次多少</legend><div class="seg">
+          <label><input type="radio" name="size" value="1" checked><span>200g</span></label>
+          <label><input type="radio" name="size" value="2.3"><span>500g</span></label>
+          <label><input type="radio" name="size" value="4.4"><span>1kg</span></label>
+        </div></fieldset>
+        <fieldset><legend>多久一次</legend><div class="seg">
+          <label><input type="radio" name="freq" value="w"><span>每周</span></label>
+          <label><input type="radio" name="freq" value="2w" checked><span>每两周</span></label>
+          <label><input type="radio" name="freq" value="m"><span>每月</span></label>
+        </div></fieldset>
+        <div class="total"><span id="freq-text">每两周寄一次</span><b class="num" id="total">¥72</b></div>
+        <button class="btn" type="button" id="sub-btn">开始订阅</button>
+      </form>
+    </div>
+  </section>
+
+  <section id="visit">
+    <div class="wrap">
+      <h2 class="sec">周四下午来，<br>整条巷子都是烘豆的味道</h2>
+      <div class="visit">
+        <ol class="timeline num" id="timeline" aria-label="每周时间表">
+          <li data-d="2"><span class="day">周二</span><span class="time">10:00</span><span>开始接受本周预订</span></li>
+          <li data-d="3"><span class="day">周三</span><span class="time">22:00</span><span>本周预订截止</span></li>
+          <li data-d="4"><span class="day">周四</span><span class="time">14:00</span><span>开炉烘豆，大约到 18:00</span></li>
+          <li data-d="5"><span class="day">周五</span><span class="time">10:00</span><span>顺丰上门揽收，订阅优先</span></li>
+          <li data-d="6"><span class="day">周末</span><span class="time">09:30</span><span>店里有当周豆子的手冲品鉴</span></li>
+        </ol>
+        <div class="place">
+          <h3>地址</h3>
+          <p>杭州市西湖区文三路 218 号院内 2 号楼<br>从院子南门进，左手第二家</p>
+          <h3>营业时间</h3>
+          <p class="num">周二至周五 08:30–18:00<br>周六、周日 09:30–19:00，周一休息</p>
+          <h3>联系</h3>
+          <p>hello@wildpath.example<br><span class="num">0571-8800-4242</span></p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap"><span>野径咖啡（示例网站，品牌与内容均为虚构）</span><span>下次烘焙：10 月 29 日，周四</span></div></footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="bag-shape">
+      <path d="M14 18 H106 L110 166 H10 Z" fill="#B8915F"/>
+      <path d="M14 18 H106 L110 166 H10 Z" fill="none" stroke="rgba(0,0,0,.18)" stroke-width="1"/>
+      <path d="M14 18 H106 V31 H14 Z" fill="rgba(0,0,0,.12)"/>
+      <path d="M86 18 L90 166 H110 L106 18 Z" fill="rgba(0,0,0,.08)"/>
+      <circle cx="60" cy="46" r="3.2" fill="none" stroke="rgba(0,0,0,.3)" stroke-width="1.2"/>
+    </g>
+  </defs>
+</svg>
+
+<script>
+(function () {
+  /* 烘焙曲线：画在牛皮纸上 */
+  var svg = document.getElementById('curve'), NS = 'http://www.w3.org/2000/svg';
+  var W = 640, H = 330, L = 38, R = 64, T = 14, B = 28, tMax = 12.5, yMin = 80, yMax = 225;
+  var X = function (t) { return L + (W - L - R) * t / tMax; };
+  var Y = function (c) { return T + (H - T - B) * (1 - (c - yMin) / (yMax - yMin)); };
+  function bt(t, b) { return t < 1.5 ? b.charge - (b.charge - 95) * Math.pow(t / 1.5, 0.55) : 95 + b.kk * (1 - Math.exp(-(t - 1.5) / b.tau)); }
+  var beans = [
+    { k: 'guji', name: '古吉', drop: 10, kk: 133, tau: 5, charge: 205, color: 'var(--c-guji-line)' },
+    { k: 'baoshan', name: '保山', drop: 11, kk: 146.6, tau: 6.5, charge: 200, color: '#C97A1E' },
+    { k: 'sunday', name: '周日', drop: 12, kk: 159.8, tau: 8, charge: 195, color: 'var(--ink)' }
+  ];
+  function el(n, a, p) { var e = document.createElementNS(NS, n); for (var k in a) e.setAttribute(k, a[k]); (p || svg).appendChild(e); return e; }
+  var g = el('g', { class: 'grid' }), ax = el('g', { class: 'axis' });
+  [100, 150, 200].forEach(function (c) { el('line', { x1: L, x2: W - R, y1: Y(c), y2: Y(c) }, g); el('text', { x: L - 8, y: Y(c) + 4, 'text-anchor': 'end' }, ax).textContent = c + '°'; });
+  [0, 2, 4, 6, 8, 10, 12].forEach(function (m) { el('text', { x: X(m), y: H - 6, 'text-anchor': 'middle' }, ax).textContent = m + ':00'; });
+  el('rect', { class: 'crack', x: X(8.6), y: T, width: X(9.6) - X(8.6), height: H - T - B, rx: 4 });
+  el('text', { class: 'crack-l', x: X(9.1), y: T + 14, 'text-anchor': 'middle' }).textContent = '一爆';
+  var paths = {};
+  beans.forEach(function (b) {
+    var d = ''; for (var t = 0; t <= b.drop + 0.001; t += 0.25) d += (t ? 'L' : 'M') + X(t).toFixed(1) + ' ' + Y(bt(t, b)).toFixed(1);
+    var gr = el('g', {}); paths[b.k] = gr;
+    el('path', { class: 'curve', d: d, stroke: b.color }, gr);
+    var ey = Y(bt(b.drop, b));
+    el('circle', { cx: X(b.drop), cy: ey, r: 5, fill: b.color }, gr);
+    var lab = el('text', { class: 'end-l', x: X(b.drop), y: ey - 13, 'text-anchor': 'middle', fill: b.color }, gr); lab.textContent = b.name;
+  });
+  document.querySelectorAll('#shelf .tile').forEach(function (t) {
+    t.addEventListener('mouseenter', function () { Object.keys(paths).forEach(function (k) { paths[k].style.opacity = k === t.dataset.k ? 1 : .18; }); });
+    t.addEventListener('mouseleave', function () { Object.keys(paths).forEach(function (k) { paths[k].style.opacity = 1; }); });
+  });
+
+  /* 购物袋：同一支豆子的按钮在首屏和色块里同步 */
+  var count = 0, countEl = document.getElementById('count'), toast = document.getElementById('toast'), tm;
+  function say(m) { toast.textContent = m; toast.classList.add('show'); clearTimeout(tm); tm = setTimeout(function () { toast.classList.remove('show'); }, 2400); }
+  var btns = document.querySelectorAll('button[data-name]');
+  btns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      var on = b.getAttribute('aria-pressed') === 'true', name = b.dataset.name;
+      btns.forEach(function (x) { if (x.dataset.name === name) { x.setAttribute('aria-pressed', String(!on)); x.textContent = on ? '加入购物袋' : '已加入'; } });
+      count += on ? -1 : 1; countEl.textContent = count;
+      say(on ? '已从购物袋移除：' + name : '已加入购物袋：' + name);
+    });
+  });
+  document.getElementById('notify').addEventListener('click', function () { this.textContent = '已登记'; this.disabled = true; say('示例网站，到货通知未接入'); });
+
+  /* 订阅价格 */
+  var form = document.getElementById('picker'), total = document.getElementById('total'), ft = document.getElementById('freq-text');
+  var txt = { w: '每周寄一次', '2w': '每两周寄一次', m: '每月寄一次' };
+  function calc() { total.textContent = '¥' + Math.round(+form.kind.value * +form.size.value); ft.textContent = txt[form.freq.value]; }
+  form.addEventListener('change', calc); calc();
+  document.getElementById('sub-btn').addEventListener('click', function () { say('示例网站，订阅功能未接入'); });
+
+  /* 时间表：标出今天 */
+  var d = new Date().getDay(); if (d === 0) d = 6;
+  var li = document.querySelector('#timeline li[data-d="' + d + '"]'); if (li) li.classList.add('now');
+})();
+</script>
+</body>
+</html>

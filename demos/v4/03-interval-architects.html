@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ECEAE4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14171C" media="(prefers-color-scheme: dark)">
+<title>间筑建筑事务所</title>
+<meta name="description" content="间筑是上海的一家建筑事务所，做城市旧区里的小尺度公共建筑：图书馆、菜市场、社区中心。">
+<!--
+【模式】展示：作品集网站。作品领先，界面退后。从零做的演示，事务所、人物、项目与数据均为虚构（页脚已注明）。
+
+【第三版的问题】和另外两个示例长成了同一个样子：白底、中性灰、圆角面板。图纸被装进了小卡片。
+
+【盘点：只属于间筑的东西】
+1. 名字里的"间"：房间、之间、间隙
+2. 图纸：描图纸、蓝色墨线、施工分区的斜线、每张图右下角的图签（项目名、比例、图号、日期）
+3. 平江路菜市场：不停业，分三期改造；六条天窗；保留 8.0 × 5.5 米柱网；春节前两周完工
+4. 每个项目开始前在场地待一周，按小时计数，现场用"正"字记
+5. 只接 3,000 平方米以下的项目
+6. 愚园路 1088 弄 7 号 3 楼
+
+【论证】
+首屏：我们在不打断日常的前提下改造公共建筑 → 铺满整屏的平面图 + 图签，可以逐期切换
+观察：我们先看人，再画图 → 现场记录本：正字计数、每小时人流、现场笔记
+项目：都是这个尺度 → 六个项目的图纸，铺在描图纸上
+事务所、联系 → 安静
+
+【方案】
+颜色：描图纸 #ECEAE4（页面底色，来自真实的描图纸）/ 墨 #1D1F22 / 次要 #66686B / 图纸蓝 #2446B0
+      深色模式按"蓝晒图"处理：深蓝灰底 #14171C，线条浅色
+字体：Schibsted Grotesk + 思源黑体
+网格：只出现在图纸区域，对应真实的坐标纸，不铺满整页
+自检：去掉了第三版装图纸的小卡片；没有黑色通栏线、零圆角戏服、超大编号；图签是建筑图纸本来就有的东西
+
+【占位清单】
+- 未接通：「查看项目」链接为占位
+- 示例内容：全部虚构
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ECEAE4; --paper-2: #E3E0D8; --ink: #1D1F22; --ink-2: #66686B; --ink-3: #9A9B98; --line: rgba(29,31,34,.14);
+    --blue: #2446B0; --blue-fill: rgba(36,70,176,.12); --grid: rgba(36,70,176,.08); --grid-major: rgba(36,70,176,.14);
+    --site: rgba(29,31,34,.28); --vendor: rgba(29,31,34,.13);
+    --white: #F7F6F2;
+    --wght: 400;
+    --font: "Schibsted Grotesk", "Noto Sans SC", -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --paper: #14171C; --paper-2: #1A1E25; --ink: #E4E6EA; --ink-2: #9EA3AB; --ink-3: #6B717A; --line: rgba(228,230,234,.14);
+      --blue: #8FA8F2; --blue-fill: rgba(143,168,242,.14); --grid: rgba(143,168,242,.07); --grid-major: rgba(143,168,242,.13);
+      --site: rgba(228,230,234,.3); --vendor: rgba(228,230,234,.14);
+      --white: #1A1E25;
+      --wght: 360;
+    }
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scrollbar-color: var(--ink-3) transparent; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font); font-weight: var(--wght); font-size: 16px; line-height: 1.7; -webkit-font-smoothing: antialiased; }
+  ::selection { background: var(--blue); color: var(--paper); }
+  a { color: inherit; text-underline-offset: 4px; }
+  :focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: 4px; }
+  h1, h2, h3 { text-wrap: balance; }
+  p { text-wrap: pretty; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 0 36px; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  header .wrap { height: 72px; display: flex; align-items: center; justify-content: space-between; }
+  .brand { font-weight: 700; font-size: 18px; text-decoration: none; }
+  .brand span { font-weight: 400; color: var(--ink-2); margin-left: 10px; }
+  header nav { display: flex; gap: 2px; font-size: 15px; }
+  header nav a { text-decoration: none; color: var(--ink-2); padding: 8px 12px; border-radius: 6px; }
+  header nav a:hover { color: var(--ink); background: var(--paper-2); }
+
+  .lead { padding-top: 24px; padding-bottom: 32px; display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: end; }
+  .lead h1 { font-size: clamp(30px, 3.6vw, 48px); line-height: 1.2; font-weight: 600; letter-spacing: -0.02em; margin: 0; max-width: 20em; }
+  .lead h1 span { color: var(--ink-2); }
+
+  /* 坐标纸：只用在图纸区域 */
+  .sheet { background-color: var(--white);
+    background-image: linear-gradient(var(--grid-major) 1px, transparent 1px), linear-gradient(90deg, var(--grid-major) 1px, transparent 1px), linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px; }
+
+  /* 首屏图纸，铺满整屏宽度 */
+  .drawing { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .drawing .inner { max-width: 1440px; margin: 0 auto; padding: 56px 48px 128px; position: relative; color: var(--ink); }
+  .drawing svg.plan { display: block; width: 100%; height: auto; }
+  .titleblock { position: absolute; right: 48px; bottom: 28px; display: grid; grid-template-columns: auto auto; border: 1px solid var(--ink); background: var(--white); font-size: 12px; line-height: 1.3; }
+  .titleblock div { padding: 6px 10px; border-right: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+  .titleblock div:nth-child(2n) { border-right: 0; }
+  .titleblock div:nth-last-child(-n+2) { border-bottom: 0; }
+  .titleblock span { display: block; font-size: 10px; color: var(--ink-2); }
+  .titleblock b { font-weight: 600; font-size: 13px; }
+  .titleblock .wide { grid-column: 1 / -1; border-right: 0; }
+  .titleblock .wide b { font-size: 15px; }
+
+  .controls { display: grid; grid-template-columns: auto 1fr; gap: 32px; align-items: center; padding-top: 24px; padding-bottom: 8px; }
+  .phases { display: inline-flex; gap: 2px; border: 1px solid var(--ink); border-radius: 8px; padding: 3px; }
+  .phases button { height: 36px; padding: 0 16px; border-radius: 5px; border: 0; background: transparent; color: var(--ink); font: 500 15px var(--font); cursor: pointer; white-space: nowrap; }
+  .phases button:hover { background: var(--paper-2); }
+  .phases button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+  .phase-note { margin: 0; font-size: 17px; color: var(--ink-2); min-height: 3.2em; display: flex; align-items: center; }
+
+  .plan .wall { fill: none; stroke: currentColor; stroke-width: 2.5; }
+  .plan .thin { fill: none; stroke: currentColor; stroke-width: 1; }
+  .plan .light { fill: none; stroke: var(--ink-3); stroke-width: .8; }
+  .plan .col { fill: currentColor; }
+  .plan .new { fill: none; stroke: var(--blue); stroke-width: 1.8; }
+  .plan .newfill { fill: var(--blue-fill); }
+  .plan .vendor { fill: var(--vendor); }
+  .plan text { font-family: var(--font); fill: var(--ink-2); font-size: 13px; }
+  .plan .zone-label { fill: var(--ink); font-weight: 600; font-size: 15px; }
+  .plan .dim { stroke: var(--blue); stroke-width: .8; fill: none; }
+  .plan .dim-t { fill: var(--blue); font-size: 12px; }
+  .plan g.layer { transition: opacity .25s ease-out; }
+  #hatch line { stroke: var(--site); stroke-width: 2; }
+
+  .facts { display: grid; grid-template-columns: 1.2fr repeat(4, 1fr); gap: 32px; padding-top: 40px; padding-bottom: 120px; align-items: start; }
+  .facts h2 { font-size: 24px; font-weight: 600; margin: 0; line-height: 1.3; }
+  .facts h2 span { display: block; font-size: 15px; font-weight: 400; color: var(--ink-2); margin-top: 4px; }
+  .facts dl { margin: 0; }
+  .facts dt { font-size: 14px; color: var(--ink-2); }
+  .facts dd { margin: 2px 0 0; font-size: 30px; font-weight: 600; letter-spacing: -0.02em; }
+  .facts dd small { font-size: 15px; font-weight: 400; color: var(--ink-2); margin-left: 2px; letter-spacing: 0; }
+  .story { grid-column: 1 / -1; display: grid; grid-template-columns: 1.2fr 2fr; gap: 32px; margin-top: 8px; }
+  .story p { margin: 0; font-size: 17px; max-width: 40em; }
+  .story p + p { margin-top: 12px; }
+
+  /* 现场记录本 */
+  .field { padding: 112px 0; border-top: 1px solid var(--line); }
+  .field .wrap { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 72px; }
+  .field h2, .sec-head h2, .about h2 { font-size: clamp(30px, 3.4vw, 44px); line-height: 1.2; font-weight: 600; margin: 0 0 20px; letter-spacing: -0.02em; }
+  .field .intro p { margin: 0 0 16px; font-size: 17px; max-width: 28em; }
+  .field .intro .muted { color: var(--ink-2); }
+  .notebook { background: var(--white); border: 1px solid var(--line); border-radius: 4px; padding: 28px 32px 20px; }
+  .nb-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; padding-bottom: 14px; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
+  .nb-head b { font-weight: 600; }
+  .nb-head span { font-size: 13px; color: var(--ink-2); }
+  .tally { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: baseline; padding: 6px 0; font-size: 15px; }
+  .tally time { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .tally .zh { font-family: "Noto Sans SC", "PingFang SC", sans-serif; color: var(--blue); letter-spacing: .12em; font-size: 18px; line-height: 1.4; word-break: break-all; }
+  .tally b { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tally-note { font-size: 13px; color: var(--ink-2); margin: 4px 0 22px; }
+  .bars { display: grid; grid-template-columns: repeat(15, 1fr); gap: 6px; align-items: end; height: 150px; }
+  .bars div { background: var(--ink-3); border-radius: 2px 2px 0 0; position: relative; min-height: 2px; }
+  .bars div.peak { background: var(--blue); }
+  .bars div:hover::after, .bars div:focus-visible::after { content: attr(data-v) " 人"; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); font-size: 12px; background: var(--ink); color: var(--paper); padding: 2px 8px; border-radius: 4px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .hours { display: grid; grid-template-columns: repeat(15, 1fr); gap: 6px; font-size: 11px; color: var(--ink-3); margin-top: 6px; text-align: center; font-variant-numeric: tabular-nums; }
+  .notes { list-style: none; margin: 22px 0 0; padding: 0; }
+  .notes li { display: grid; grid-template-columns: 56px 1fr; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 15px; }
+  .notes time { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+  /* 项目：图纸直接铺在坐标纸上 */
+  section { padding: 112px 0; border-top: 1px solid var(--line); }
+  .sec-head { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 36px; flex-wrap: wrap; }
+  .sec-head h2 { margin: 0; }
+  .filters { display: inline-flex; gap: 2px; border: 1px solid var(--ink); border-radius: 8px; padding: 3px; flex-wrap: wrap; }
+  .filters button { height: 34px; padding: 0 14px; border-radius: 5px; border: 0; background: transparent; color: var(--ink); font: 500 14px var(--font); cursor: pointer; }
+  .filters button:hover { background: var(--paper-2); }
+  .filters button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 48px 28px; list-style: none; margin: 0; padding: 0; }
+  .proj a { display: block; text-decoration: none; }
+  .proj .thumb { aspect-ratio: 4 / 3; display: flex; align-items: center; justify-content: center; padding: 13%; color: var(--ink); border: 1px solid var(--line); border-radius: 2px; transition: border-color .15s ease-out; }
+  .proj .thumb svg { width: 100%; height: 100%; }
+  .proj a:hover .thumb { border-color: var(--blue); }
+  .proj .cap { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; align-items: baseline; }
+  .proj h3 { font-size: 18px; font-weight: 600; margin: 0; }
+  .proj .no { font-size: 13px; color: var(--ink-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .proj p { margin: 2px 0 0; color: var(--ink-2); font-size: 15px; }
+  .proj[hidden] { display: none; }
+  .empty { color: var(--ink-2); padding: 32px 0; }
+
+  .about { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; }
+  .about p { margin: 0 0 16px; font-size: 17px; }
+  h2 .ph { display: inline-block; }
+  .about .muted { color: var(--ink-2); font-size: 16px; }
+  .people { list-style: none; margin: 0; padding: 0; }
+  .people li { display: flex; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .people li:first-child { border-top: 1px solid var(--line); }
+  .people span { color: var(--ink-2); }
+  .hiring { margin-top: 24px; font-size: 15px; color: var(--ink-2); }
+  .hiring b { color: var(--ink); font-weight: 600; }
+
+  .contact { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 32px; }
+  .contact h2 { font-size: clamp(28px, 3vw, 40px); font-weight: 600; margin: 0 0 8px; line-height: 1.25; letter-spacing: -0.02em; }
+  .contact p { margin: 0; color: var(--ink-2); }
+  .contact dt { font-size: 14px; color: var(--ink-2); margin-bottom: 2px; }
+  .contact dd { margin: 0 0 16px; font-size: 17px; }
+
+  footer { border-top: 1px solid var(--line); padding: 24px 0 40px; color: var(--ink-2); font-size: 14px; }
+
+  @media (max-width: 1000px) {
+    .grid { grid-template-columns: repeat(2, 1fr); }
+    .facts { grid-template-columns: repeat(2, 1fr); }
+    .facts h2 { grid-column: 1 / -1; }
+    .story { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 860px) {
+    .wrap { padding-left: 20px; padding-right: 20px; }
+    .brand span { display: none; }
+    .lead { grid-template-columns: 1fr; padding-top: 8px; }
+    .drawing .inner { padding: 20px 12px 16px; }
+    .plan .dim, .plan .dim-t { display: none; }
+    .titleblock { position: static; margin-top: 16px; }
+    .plan text { display: none; }
+    .controls { grid-template-columns: 1fr; gap: 12px; }
+    .phases { overflow-x: auto; max-width: 100%; }
+    .field .wrap, .about, .contact { grid-template-columns: 1fr; gap: 32px; }
+    .field, section { padding: 72px 0; }
+    .facts { padding-bottom: 72px; }
+    .notebook { padding: 20px 18px 14px; }
+    .bars { height: 120px; gap: 4px; }
+    .hours { gap: 4px; }
+    .hours span:nth-child(even) { visibility: hidden; }
+  }
+  @media (max-width: 520px) { .wrap { padding-left: 16px; padding-right: 16px; } .grid { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <a class="brand" href="#">间筑<span>Interval Architects</span></a>
+    <nav aria-label="主导航">
+      <a href="#projects">项目</a>
+      <a href="#about">事务所</a>
+      <a href="#contact">联系</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap lead">
+    <h1>我们在城市旧区里做小尺度的公共建筑。<span>改造的时候，菜市场一天也没有关门。</span></h1>
+  </div>
+
+  <figure class="drawing sheet" style="margin:0">
+    <div class="inner">
+      <svg class="plan" id="market" viewBox="0 0 1200 470" role="img" aria-label="平江路菜市场首层平面图，可以按改造阶段查看">
+        <defs><pattern id="hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="10"/></pattern></defs>
+        <g class="layer" data-show="1"><rect fill="url(#hatch)" x="600" y="30" width="580" height="380"/><text class="zone-label" x="890" y="226" text-anchor="middle">一期施工</text></g>
+        <g class="layer" data-show="2"><rect fill="url(#hatch)" x="20" y="30" width="580" height="380"/><text class="zone-label" x="310" y="226" text-anchor="middle">二期施工</text></g>
+        <g class="layer" data-show="3"><rect fill="url(#hatch)" x="180" y="186" width="940" height="68"/></g>
+        <g id="stalls"></g>
+        <rect class="wall" x="20" y="30" width="1160" height="380"/>
+        <g class="col" id="cols"></g>
+        <g class="layer" data-show="2,3,4" id="sky-east"></g>
+        <g class="layer" data-show="3,4" id="sky-west"></g>
+        <g style="stroke:var(--white);stroke-width:8"><line x1="20" y1="200" x2="20" y2="240"/><line x1="1180" y1="200" x2="1180" y2="240"/></g>
+        <text x="30" y="226">西入口</text><text x="1170" y="226" text-anchor="end">东入口</text>
+        <!-- 尺寸线 -->
+        <path class="dim" d="M170 440 H330 M170 434 V446 M330 434 V446"/>
+        <text class="dim-t" x="250" y="460" text-anchor="middle">8,000</text>
+        <path class="dim" d="M20 440 H1180 M20 434 V446 M1180 434 V446"/>
+        <text class="dim-t" x="680" y="460" text-anchor="middle">总长 58,000</text>
+      </svg>
+      <div class="titleblock num" aria-label="图签">
+        <div class="wide"><span>项目</span><b>平江路菜市场改造</b></div>
+        <div><span>图名</span><b>首层平面</b></div>
+        <div><span>图号</span><b>A-101</b></div>
+        <div><span>比例</span><b>1 : 400</b></div>
+        <div><span>日期</span><b>2024.12</b></div>
+      </div>
+    </div>
+  </figure>
+
+  <div class="wrap controls">
+    <div class="phases" role="group" aria-label="改造阶段">
+      <button type="button" data-p="1" aria-pressed="false">一期</button>
+      <button type="button" data-p="2" aria-pressed="false">二期</button>
+      <button type="button" data-p="3" aria-pressed="false">三期</button>
+      <button type="button" data-p="4" aria-pressed="true">完成</button>
+    </div>
+    <p class="phase-note" id="phase-note" aria-live="polite"></p>
+  </div>
+
+  <div class="wrap facts num">
+    <h2>平江路菜市场改造<span>苏州，2025 年建成</span></h2>
+    <dl><dt>建筑面积</dt><dd>3,420<small>m²</small></dd></dl>
+    <dl><dt>摊位</dt><dd>126<small>个</small></dd></dl>
+    <dl><dt>工期</dt><dd>14<small>个月</small></dd></dl>
+    <dl><dt>停业</dt><dd>0<small>天</small></dd></dl>
+    <div class="story">
+      <div></div>
+      <div>
+        <p>原来的市场只有 3.2 米净高，白天也要开灯。我们保留了 8.0 × 5.5 米的混凝土柱网，在上面加了一层轻钢屋架，屋顶抬高 1.8 米，沿东西向开出六条天窗。</p>
+        <p>改造期间市场没有关过一天门：摊主们每次搬到已经完工的那一半，施工再推进到另一半。最后一期在春节前两周完成。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="field">
+    <div class="wrap">
+      <div class="intro">
+        <h2>动笔之前，我们先在场地里待一周。</h2>
+        <p>每个项目开始前，我们会按小时记下谁经过、在哪里停下、停多久。现场计数用的是"正"字，一个字代表五个人。</p>
+        <p>平江路菜市场的天窗位置，就是照着早上七点到八点人最多的那条过道定的。</p>
+        <p class="muted">右边是那一周里一个周三的记录。</p>
+      </div>
+      <div class="notebook">
+        <div class="nb-head"><b>平江路菜市场，东西入口合计</b><span class="num">2023.11.15，周三，晴</span></div>
+        <div class="tally"><time>05:00</time><span class="zh" id="tally-5"></span><b>38</b></div>
+        <div class="tally"><time>06:00</time><span class="zh" id="tally-6"></span><b>162</b></div>
+        <p class="tally-note">七点以后人太多，改成每 15 分钟数一次，下面是全天的汇总。</p>
+        <div class="bars" id="bars" aria-label="每小时人数柱状图，早上 7 点最多，418 人"></div>
+        <div class="hours" id="hrs"></div>
+        <ul class="notes">
+          <li><time class="num">05:40</time><span>第一位摊主到，卖豆腐的。先开东边的卷帘门，西边要到六点半。</span></li>
+          <li><time class="num">07:15</time><span>中间过道最挤，推着买菜车的老人在鱼摊前停得最久，平均四分钟。</span></li>
+          <li><time class="num">10:30</time><span>人少了，摊主们在西北角的空地上吃早饭，这里没有座位，他们坐在泡沫箱上。</span></li>
+          <li><time class="num">16:50</time><span>放学的孩子穿过市场去对面的弄堂，是一天里第二个小高峰。</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <section id="projects">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2>项目</h2>
+        <div class="filters" role="group" aria-label="按类型筛选">
+          <button type="button" data-f="all" aria-pressed="true">全部</button>
+          <button type="button" data-f="文化" aria-pressed="false">文化</button>
+          <button type="button" data-f="社区" aria-pressed="false">社区</button>
+          <button type="button" data-f="教育" aria-pressed="false">教育</button>
+          <button type="button" data-f="商业" aria-pressed="false">商业</button>
+        </div>
+      </div>
+      <ul class="grid" id="grid">
+        <li class="proj" data-t="文化"><a href="#"><div class="thumb sheet"><svg class="plan" viewBox="0 0 200 150"><rect class="wall" x="10" y="10" width="180" height="130"/><rect class="wall" x="75" y="45" width="50" height="60"/><path class="light" d="M75 60h50M75 75h50M75 90h50"/><path class="thin" d="M22 26h36M22 36h36M22 46h36M142 26h36M142 36h36M142 46h36M22 104h36M22 114h36M22 124h36"/><rect class="newfill" x="142" y="100" width="36" height="30"/><rect class="new" x="142" y="100" width="36" height="30"/></svg></div>
+          <div class="cap"><h3>愚园路社区图书馆</h3><span class="no">A-23</span></div><p>上海，在建，预计 2026 年底开放，1,860 m²</p></a></li>
+        <li class="proj" data-t="社区"><a href="#"><div class="thumb sheet"><svg class="plan" viewBox="0 0 200 150"><path class="wall" d="M10 10H190V70H100V140H10Z"/><path class="thin" d="M10 50H100M55 10V50M150 10V70M10 105H100"/><path class="light" d="M106 80h78M106 92h78M106 104h78M106 116h78M106 128h78"/><rect class="newfill" x="20" y="58" width="72" height="40"/><rect class="new" x="20" y="58" width="72" height="40"/></svg></div>
+          <div class="cap"><h3>月湖街道邻里中心</h3><span class="no">A-21</span></div><p>宁波，2024 年，2,150 m²</p></a></li>
+        <li class="proj" data-t="教育"><a href="#"><div class="thumb sheet"><svg class="plan" viewBox="0 0 200 150"><rect class="wall" x="10" y="15" width="180" height="120"/><rect class="thin" x="22" y="27" width="44" height="96"/><path class="thin" d="M22 46h44M22 65h44M22 84h44M22 103h44"/><path class="light" d="M84 34h92M84 52h92M84 70h92M84 88h92M84 106h92M84 124h92"/><path class="new" d="M76 22V128"/></svg></div>
+          <div class="cap"><h3>南翔小学食堂</h3><span class="no">A-20</span></div><p>上海，2023 年，960 m²</p></a></li>
+        <li class="proj" data-t="商业"><a href="#"><div class="thumb sheet"><svg class="plan" viewBox="0 0 200 150"><rect class="light" x="20" y="10" width="160" height="130"/><rect class="wall" x="55" y="30" width="90" height="80"/><path class="thin" d="M75 50h50v40H75zM100 50v40"/><circle class="light" cx="38" cy="28" r="8"/><circle class="light" cx="162" cy="30" r="10"/><circle class="light" cx="36" cy="122" r="9"/><rect class="newfill" x="68" y="112" width="64" height="20"/><rect class="new" x="68" y="112" width="64" height="20"/></svg></div>
+          <div class="cap"><h3>山塘弄堂茶室</h3><span class="no">A-19</span></div><p>苏州，2023 年，180 m²</p></a></li>
+        <li class="proj" data-t="社区"><a href="#"><div class="thumb sheet"><svg class="plan" viewBox="0 0 200 150"><rect class="wall" x="12" y="50" width="52" height="50"/><rect class="wall" x="74" y="50" width="52" height="50"/><rect class="wall" x="136" y="50" width="52" height="50"/><path class="light" d="M0 120H200M0 128H200"/><rect class="newfill" x="12" y="40" width="176" height="10"/><rect class="new" x="12" y="40" width="176" height="10"/></svg></div>
+          <div class="cap"><h3>杨浦滨江驿站（三处）</h3><span class="no">A-18</span></div><p>上海，2022 年，共 1,240 m²</p></a></li>
+        <li class="proj" data-t="教育"><a href="#"><div class="thumb sheet"><svg class="plan" viewBox="0 0 200 150"><rect class="wall" x="10" y="20" width="110" height="110"/><path class="thin" d="M10 60h110M10 95h110M60 20v40"/><rect class="newfill" x="120" y="40" width="70" height="90"/><rect class="new" x="120" y="40" width="70" height="90"/><path class="light" d="M130 55h50M130 70h50M130 85h50"/></svg></div>
+          <div class="cap"><h3>嘉定老城区少年宫加建</h3><span class="no">A-17</span></div><p>上海，2021 年，2,600 m²，蓝色为加建部分</p></a></li>
+      </ul>
+      <p class="empty" id="empty" hidden>这个类型暂时没有可以展示的项目。</p>
+    </div>
+  </section>
+
+  <section id="about">
+    <div class="wrap about">
+      <div>
+        <h2><span class="ph">只做 3,000 平方米</span><span class="ph">以下的项目</span></h2>
+        <p>这样每个项目都能由合伙人亲自跟到竣工。大部分委托来自街道、教育局和文化机构，也有一部分来自公开竞赛。</p>
+        <p class="muted">事务所在愚园路一栋弄堂房子的三楼，2014 年成立，现在 14 个人，建成了 23 个项目。</p>
+      </div>
+      <div>
+        <ul class="people">
+          <li>周岚<span>主持建筑师，合伙人</span></li>
+          <li>陈以舟<span>合伙人，技术总监</span></li>
+          <li>沈一苇<span>项目建筑师</span></li>
+          <li>许棠<span>项目建筑师</span></li>
+        </ul>
+        <p class="hiring"><b>正在招聘</b> 项目建筑师 1 名、实习生 2 名。作品集请发到 <a href="mailto:jobs@interval.example">jobs@interval.example</a>，PDF 不超过 20 MB。</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <div class="wrap contact">
+      <div><h2>有一块场地想聊聊？</h2><p>请附上场地位置和大致面积，我们会在三个工作日内回复。</p></div>
+      <dl><dt>邮箱</dt><dd><a href="mailto:studio@interval.example">studio@interval.example</a></dd><dt>电话</dt><dd class="num">021-6200 1014</dd></dl>
+      <dl><dt>地址</dt><dd>上海市长宁区愚园路 1088 弄 7 号 3 楼</dd></dl>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">间筑建筑事务所（示例网站，事务所、人物、项目与观察数据均为虚构）</div></footer>
+
+<script>
+(function () {
+  var NS = 'http://www.w3.org/2000/svg';
+  function el(n, a, p) { var e = document.createElementNS(NS, n); for (var k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; }
+  var cols = document.getElementById('cols');
+  [166, 326, 486, 646, 806, 966].forEach(function (x) { el('rect', { x: x, y: 106, width: 8, height: 8 }, cols); el('rect', { x: x, y: 326, width: 8, height: 8 }, cols); });
+  var stalls = document.getElementById('stalls');
+  var west = el('g', {}, stalls), east = el('g', {}, stalls);
+  west.style.transition = east.style.transition = 'opacity .25s ease-out';
+  [140, 260].forEach(function (y) { for (var x = 60; x < 1140; x += 45) el('rect', { class: 'vendor', x: x + 2, y: y, width: 41, height: 40, rx: 1 }, x < 600 ? west : east); });
+  var se = document.getElementById('sky-east'), sw = document.getElementById('sky-west');
+  [200, 360, 520].forEach(function (x) { el('rect', { class: 'newfill', x: x, y: 196, width: 100, height: 48 }, sw); el('rect', { class: 'new', x: x, y: 196, width: 100, height: 48 }, sw); });
+  [680, 840, 1000].forEach(function (x) { el('rect', { class: 'newfill', x: x, y: 196, width: 100, height: 48 }, se); el('rect', { class: 'new', x: x, y: 196, width: 100, height: 48 }, se); });
+
+  var notes = {
+    1: '一期，2024 年 1 月起，5 个月：东半边封闭施工，摊位全部集中到西半边营业，过道缩窄到 2.4 米。',
+    2: '二期，6 月起，5 个月：东半边的新屋顶和三条天窗完工，摊主搬过去；西半边开始施工。',
+    3: '三期，11 月起，4 个月：两边都恢复营业，只封中间过道，晚上收摊后施工，安装西边三条天窗。',
+    4: '完成，2025 年 1 月，春节前两周：保留原柱网，屋顶抬高 1.8 米，蓝色为新增的六条天窗。'
+  };
+  var layers = document.querySelectorAll('#market g.layer'), btns = document.querySelectorAll('.phases button'), note = document.getElementById('phase-note');
+  function show(p) {
+    layers.forEach(function (g) { g.style.opacity = g.dataset.show.split(',').indexOf(String(p)) > -1 ? 1 : 0; });
+    west.style.opacity = p === 2 ? 0 : 1; east.style.opacity = p === 1 ? 0 : 1;
+    btns.forEach(function (b) { b.setAttribute('aria-pressed', String(+b.dataset.p === p)); });
+    note.textContent = notes[p];
+  }
+  btns.forEach(function (b) { b.addEventListener('click', function () { show(+b.dataset.p); }); });
+  show(4);
+
+  /* 正字计数：每个"正"代表 5 人，不满 5 用笔画数对应的字 */
+  var part = ['', '一', '丅', '下', '止'];
+  function zheng(n) { return '正'.repeat(Math.floor(n / 5)) + part[n % 5]; }
+  document.getElementById('tally-5').textContent = zheng(38);
+  document.getElementById('tally-6').textContent = zheng(162);
+
+  var data = [[5, 38], [6, 162], [7, 418], [8, 356], [9, 241], [10, 133], [11, 158], [12, 97], [13, 64], [14, 71], [15, 102], [16, 189], [17, 247], [18, 166], [19, 52]];
+  var max = 418, bars = document.getElementById('bars'), hrs = document.getElementById('hrs');
+  data.forEach(function (d) {
+    var b = document.createElement('div'); b.style.height = (d[1] / max * 100) + '%'; b.dataset.v = d[1]; b.tabIndex = 0; b.setAttribute('aria-label', d[0] + ' 点，' + d[1] + ' 人');
+    if (d[1] === max) b.className = 'peak'; bars.appendChild(b);
+    var h = document.createElement('span'); h.textContent = d[0]; hrs.appendChild(h);
+  });
+
+  var fb = document.querySelectorAll('.filters button'), items = document.querySelectorAll('.proj'), empty = document.getElementById('empty');
+  fb.forEach(function (b) {
+    b.addEventListener('click', function () {
+      fb.forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      var f = b.dataset.f, n = 0;
+      items.forEach(function (it) { var ok = f === 'all' || it.dataset.t === f; it.hidden = !ok; if (ok) n++; });
+      empty.hidden = n > 0;
+    });
+  });
+})();
+</script>
+</body>
+</html>

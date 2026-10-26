@@ -30,7 +30,15 @@ Layer two, pretending to have taste (harder to spot):
 
 Plus some surface habits: a colored stripe on the left of cards, unblurred hard offset shadows, a 1px border with a large soft shadow underneath, stripe / grid / noise backgrounds, sketchy SVG illustrations, characters like ★✓➜ as icons, choosing light or dark by product category.
 
-Each of these can be right for the right project. The problem is doing it regardless of the project. Be able to say why before using one.
+Each of these can be right for the right project. The problem is doing it regardless of the project. Be able to say why before using one. Some common "fine when"s:
+- Cream and serif: the brand really has paper, craft or publishing roots
+- Monospace: only in actual code, commands and logs
+- A label above a heading: it adds category or location, instead of repeating the heading
+- Numbering: the content really is a sequence
+- A strong style (comic, newspaper, technical drawing): the user asked for it, or the subject's world speaks that language, and every device maps to a piece of content
+- Invented features, mock data posing as real, decoration removed with nothing added back: never
+
+Watch for one newer default: **the benchmark look as the default**. White, neutral grey, pill buttons, thin-bordered panels, whether it is a coffee shop or a database tool. It suits Operate-mode screens such as dashboards and tools; for websites and showcases, color, material and imagery come from the subject's own world.
 
 The opposite mistake: removing all decoration and adding nothing back, leaving grey text and empty space; the page reads as thin. Removing decoration is only half the job; the other half is substance: bolder type contrast, whole fields of color, real pictures of the subject's world, every section written out in full.
 
@@ -46,7 +54,15 @@ Based on the real pages of Vercel, GitHub, ChatGPT, Google and Linear:
 
 This is a reference, not a template. Other industries take the principles (restraint, precision, content first); color and type come from that industry's own world.
 
+Chinese interfaces differ from these English references: headings usually at weight 500–600 (system CJK fonts look faint at 400 in large sizes), body line height 1.5–1.8, lots of 12–14px text, system fonts almost everywhere, and Operate-mode products often use a light grey page with white content columns.
+
 # Workflow
+
+First, size the change:
+- Small (a color, spacing or copy change, fixing one component, adding a button): read the relevant code and change it in the existing style; no design plan
+- Medium (a new page or feature inside an existing product): step 1, a three-or-four-line plan, then steps 5 to 7, keeping the existing style
+- Large (a new product, a website, a redesign): all seven steps below
+When in doubt, pick the smaller size.
 
 1. In an existing project, read the project first (see "Fake nothing, fool no developer"). Find out what the product is and who it is for; if unclear, make a concrete assumption and state it. Judge the page's mode: Persuade (homepage, landing page: a point of view, persuade with real imagery), Operate (admin, tools: scannable, consistent, efficient), Read (docs, articles: clear structure), Showcase (portfolio: the work leads, the interface recedes). A refinement keeps the existing style; only a redesign replaces it.
 2. Write down 8–12 concrete things that belong only to this client and to no competitor: what the name means, the street and city, materials and colors, its numbers, its constraints, its rituals, the printed things of its world. Design ideas come from here, not from "what sites in this industry usually look like".
@@ -54,7 +70,9 @@ This is a reference, not a template. Other industries take the principles (restr
 4. Write a short plan: 4–6 colors with their uses, typefaces and their roles, one sentence on the layout and its alignment, what the hero is, and which assets you actually have.
 5. Ask: given a similar brief, would I get roughly the same plan? Does it hit any AI flavor above? Is there more decoration than content? Replace the defaults and say what you changed.
 6. Build: CSS variables for color and spacing; real example content with numbers that add up; when the page shows the product's interface, build it as a real fragment of the product (real data, a clear finding), not grey blocks.
-7. Look at the result at real sizes (desktop, phone, dark mode), fix everything in one pass, then remove one unnecessary decoration. Explain the idea in a sentence or two when delivering.
+7. Look at the result at real sizes (desktop, phone, dark mode), fix everything in one pass, then remove one unnecessary decoration. Explain the idea in a sentence or two when delivering. **If you cannot see the result** (no image input, no browser), do not pretend you looked: check the code for text fitting at each width, compute contrast from the color values, check every interaction state, say in your delivery that you have not seen it in a browser, and ask for a desktop and a phone screenshot.
+
+Intensity defaults to restrained (Operate, Read) or one hero (Persuade: one bold image from the step 2 list, the rest quiet). A whole-page concept (comic, newspaper, technical drawing) needs all of: a source, every device mapped to content, code, numbers and buttons still read accurately, every product fact kept, restraint in the details. Otherwise use it only in the hero or one section.
 
 # Craft details
 
@@ -70,9 +88,9 @@ Mind maps in a README: 4 to 7 branches, 2 to 7 leaves each; the center is the pr
 
 In an existing project, read it before building: which features really exist, existing components and style variables, the data model and API fields, the existing vocabulary. For anything you cannot read, ask or state your assumption.
 
-No invented logos, customer logo walls, user counts, testimonials or press mentions; no fake logo assembled from symbols (without a logo, use the product name in plain text); check professional facts before writing them. No features the project does not have; no hard-coded mock data posing as real data (when you cannot connect the API, keep mock data in one place with the same fields as the real API); buttons and forms that are not connected must not look like they work: disable and label them, or list them. Demos built from scratch may be fictional but must say they are examples.
+No invented logos, customer logo walls, user counts, testimonials or press mentions; no fake logo assembled from symbols (without a logo, use the product name in plain text); check professional facts (technical, standards, regulations, medicine, finance, statistics) before writing them, cite sources in code comments where you can, leave out or list as "Unverified" what you cannot confirm, and make the numbers on the page agree with each other. No features the project does not have; no hard-coded mock data posing as real data (when you cannot connect the API, keep mock data in one place with the same fields as the real API); buttons and forms that are not connected must not look like they work: disable and label them, or list them. Demos built from scratch may be fictional but must say they are examples.
 
-When delivering, attach a placeholder list to your reply: what is mock data, what is not connected, what needs replacing, what you assumed. If there is nothing, write "None".
+When delivering, attach a placeholder list to your reply: what is mock data, what is not connected, what needs replacing, what you assumed, what is unverified. If there is nothing, write "None".
 
 # Copy
 

@@ -60,6 +60,11 @@ This is not a list of bans. Every pattern here can be right for the right projec
 - **Looks like**: every developer tool is dark, every lifestyle brand is light
 - **Instead**: choose from the use scene: who uses it, where, in what ambient light
 
+### The benchmark look as the default
+- **Looks like**: white, neutral grey, one brand color, pill or small-radius buttons, panels with a light grey border and a faint shadow, headings at weight 400–500. The coffee roaster, the database tool and the architecture studio all end up looking like this
+- **Why it reads as AI**: it is the next default after "don't make it look like AI". Vercel and GitHub look this way because they are tools whose content is the interface; copied onto another subject, it throws away that subject's own world
+- **Fine when**: the page is in Operate mode (dashboards, tools, settings), or the product really is a developer product. For Persuade and Showcase pages, take color, material and imagery from the inventory first, and use the benchmarks only to calibrate craft
+
 ### The hollowed-out page
 - **Looks like**: every AI-flavored decoration removed and nothing added back; grey text and large empty areas
 - **Why it is a problem**: it reads as thin and half-hearted. In blind tests, people even preferred a richer page that still had some AI flavor
@@ -152,6 +157,7 @@ Each of these is minor on its own, but almost every AI page has them, and togeth
 ### Over-theming
 - **Looks like**: once a theme is chosen, every detail leans into it (coffee motifs everywhere on a coffee site, terminal symbols everywhere on a terminal tool)
 - **Why it is a problem**: it feels contrived. Good design makes people notice the content, not the "style"
+- **Fine when**: the user asked for a strong style, or the subject's own world speaks this language, and every device maps to a piece of content (see "When to commit to a strong concept" in SKILL.md)
 
 ---
 

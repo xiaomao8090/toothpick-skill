@@ -38,7 +38,7 @@ The full list, with why each item reads as AI and when it is actually fine, is i
 
 ## What good interfaces look like
 
-`references/benchmarks.md` has measurements from Vercel, GitHub, ChatGPT, Google and Linear. What they share:
+`references/benchmarks.md` has measurements from Vercel, GitHub, ChatGPT, Google and Linear, plus the Chinese products DingTalk, Juejin, WeChat Read and sspai, and how Chinese interfaces differ (heavier headings, taller line height, smaller sizes). What the English references share:
 
 - Very few colors: almost entirely black, white and grey, plus one functional color
 - One type family; headings are large but not heavy
@@ -48,9 +48,20 @@ The full list, with why each item reads as AI and when it is actually fine, is i
 
 These are a reference, not a template. A coffee shop should not look like Vercel, but it should be just as restrained and precise, with the content in front.
 
+The reference can itself become the new default. If your last few projects, with their names covered, all come out as white, neutral grey, pill buttons and thin-bordered panels, the reference has turned into a template. Use it to calibrate craft: how light a line is, how soft a shadow, how thin a heading. Color, material and the hero come from the list in step 2.
+
 ---
 
 ## Workflow
+
+### 0. First, size the change
+| Change | Examples | Which steps |
+|---|---|---|
+| Small | A color, spacing or copy change; fixing one component; adding a button | Read the relevant code and style variables, change it in the existing style, check the few relevant entries in `references/ai-tells.md`, and deliver with a sentence or two (a placeholder list only if there are placeholders) |
+| Medium | A new page or a new feature's screens inside an existing product | Step 1, a three-or-four-line plan, then steps 5 to 7. Keep the product's existing style; skip the inventory and the argument |
+| Large | A new product, a website, a landing page, a redesign | All seven steps |
+
+When in doubt, pick the smaller size; the user will ask for more. Do not write a design plan for one button.
 
 ### 1. Understand what this is: read the project first, then the visitor
 - **In an existing project, read it before you touch anything.** Before any plan or code, find out:
@@ -92,6 +103,7 @@ Delete any section without a claim. This keeps you out of the stock "hero, logo 
 - Type: which typefaces and what each one does
 - Layout: one sentence on the idea, a simple ASCII wireframe if useful, and the alignment
 - Hero: the most persuasive thing on this page, and which assets you **actually have** (do not design around images that do not exist)
+- Intensity: restrained (the default for Operate and Read), one hero (the default for Persuade: one bold image from the inventory, everything else quiet), or a full concept (see "When to commit to a strong concept" below)
 
 ### 5. Check the plan: default or choice?
 - Given a similar brief, would I arrive at roughly the same plan? If yes, that part is a default; go back to the list from step 2 for ideas.
@@ -110,9 +122,20 @@ Say briefly in your reply what you changed and why.
 - Look at real sizes: desktop, phone (about 375px), dark mode if you built it. Look once, fix everything together; do not screenshot after every tweak.
 - Go through `checklist.md`.
 - Like checking the mirror before leaving the house, remove one accessory.
+- **When you cannot see the result** (the model cannot read images, or there is no browser): do not pretend you looked. Review the code instead: does the longest text fit the column at each breakpoint, what is the contrast ratio computed from the color values, are all interaction states written? Say in your delivery that you have not seen it in a browser, and ask the user for one desktop and one phone screenshot for another pass.
 
 ### Restraint is not emptiness
 Removing decoration is only half the job. A page that lost its labels, rules and cards and gained nothing in their place reads as thin, and can lose to a richer page that still has some AI flavor. The other half is **substance**: bolder type scale, whole fields of color, real pictures of this subject's world, every section filled with its full content.
+
+### When to commit to a strong concept
+Restraint is the default, not the ceiling. A whole-page visual concept (a comic, a newspaper, a technical drawing, a ticket) is right when all of these hold:
+- **It has a source**: the user asked for it, or the subject's own world speaks this language (an architect's drawings, a print shop's proofs, a railway timetable) and you can find it in the step 2 list
+- **Every device maps to content**: write the mapping down, for example "speed lines: requests piling up", "screentone density: how heavy the lock is". Drop any device you cannot map
+- **It still reads accurately**: code, numbers, tables and buttons can still be read and hit without error. The concept serves the content and never makes people misread it
+- **The facts do not change**: a new style keeps every product fact, feature, number and the placeholder list
+- **It knows where to stop**: use it fully on the main line and stay restrained in the details; do not put a theme element in every corner
+
+If it fails any of these, fall back to one hero: use the language only in the hero or one section. The difference from a style costume: a costume fits any product (cream and serif, near-black and neon, newspaper hairlines); a strong concept only makes sense for this one.
 
 When you deliver, explain the design idea in a sentence or two so the user can redirect easily, and attach the placeholder list (see "Fake nothing, fool no developer").
 
@@ -134,7 +157,10 @@ Users and developers should both be able to tell what is real and what is not do
 **Nothing fake in front of end users**
 - No invented logos, customer logo walls or partner badges. No fake logo assembled from symbols like "$", "▲" or "●"; without a logo, the product name in plain text is enough.
 - No invented user counts, satisfaction rates, growth figures, testimonials or press mentions.
-- Check professional facts (technical details, standards, regulations, data) before writing them. If you cannot get it right, leave it out.
+- **Check professional facts** (technical details, standards, regulations, medicine, finance, statistics). AI writes these fluently, and its mistakes look just as fluent:
+  - List the professional claims on the page. Look up what you can in documentation or standards, and cite the source in a code comment
+  - What you cannot confirm, either leave out or list under "Unverified" in the placeholder list
+  - Numbers on the page must agree with each other (70 requests a second for 41 seconds is 2,870 requests)
 
 **Nothing that fools the developer**
 - **No invented features**: every feature shown in the interface exists in the project or was explicitly requested. Do not add "smart recommendations" or "one-click export" to make the page look better.
@@ -151,6 +177,7 @@ Placeholders
 - Not connected: "Export CSV" button, "Subscribe" form submission
 - To replace: homepage testimonials [TODO], product screenshot [TODO]
 - Assumptions: refunds have only three states (pending, refunded, declined), please confirm
+- Unverified: "partial refunds do not recalculate coupons", from the brief; no matching logic found in the code
 ```
 If there are none, write "None".
 
@@ -179,7 +206,7 @@ Not worth announcing, but always required:
 | File | Contents |
 |---|---|
 | `references/ai-tells.md` | The AI-tell list: what it is, why, and when it is fine |
-| `references/benchmarks.md` | Measurements from Vercel, GitHub, ChatGPT, Google and Linear |
+| `references/benchmarks.md` | Measurements from English and Chinese products, and how Chinese interfaces differ |
 | `references/craft-details.md` | Craft details: radius, shadows, alignment, icons, interaction, forms, browser-native parts |
 | `references/readme.md` | How to structure and write a project README, and how to design the mind map inside it |
 | `references/big-company-details.md` | Details from Apple, Google, IBM and Microsoft guidelines (dark mode, motion, hit targets) |
@@ -188,4 +215,4 @@ Not worth announcing, but always required:
 | `references/web.md` | Common problems on websites and marketing pages |
 | `references/app-desktop.md` | Common problems in software, admin and desktop apps |
 | `references/mobile.md` | Common problems on mobile |
-| `checklist.md` | Questions to ask while reviewing screenshots |
+| `checklist.md` | Questions for reviewing the result (screenshots if you have them, the code if you do not) |

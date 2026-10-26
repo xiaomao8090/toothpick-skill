@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#B42318" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+<title>tern：看清每次数据库迁移会锁住什么</title>
+<meta name="description" content="tern 是一个开源的 PostgreSQL 迁移检查工具：执行前算出每条语句的锁和阻塞时间，在影子库上演练，并给出不锁表的改写方案。">
+<!--
+【第三版的问题】三个示例网站长成了同一个样子（白底、中性灰、胶囊按钮、圆角面板），"大厂参照"成了新默认值。
+
+【模式】说服：开源开发者工具的官网。访客是后端工程师，想判断它能不能防止线上锁表。
+
+【盘点：只属于 tern 的东西】
+1. 它关心的是"锁"：PostgreSQL 有 8 种表锁，只有少数会挡住用户的读写
+2. 一个真实场景：给 821 万行的 orders 表加一列默认值为 gen_random_uuid() 的 NOT NULL 列，整表重写，锁 41 秒
+3. 它的改写方案：先加可空列、设默认值、分批回填、NOT VALID 约束、VALIDATE、最后 SET NOT NULL，每步锁都不到 1 秒
+4. 它的参数：--max-lock 2s；退出码 1 让 CI 失败
+5. 它在 Pull Request 里留下的检查报告
+6. 影子库：用生产的结构和统计信息拉起临时实例，跑完销毁
+7. 名字：tern 是燕鸥，北极燕鸥每年迁徙约七万公里
+8. 它的边界：只支持 PostgreSQL 12–17，还不支持 MySQL
+
+【论证】
+首屏：迁移会在你看不见的地方锁表 → 证据：一张锁时间线，原迁移 41 秒阻塞，切换到改写后不到 0.1 秒
+报告：它会在合并前拦住你 → 证据：PR 里的检查报告
+锁表：它懂 PostgreSQL 的锁 → 证据：8 种锁谁挡读、谁挡写的对照表
+接入：不用改迁移文件 → 证据：四步接入、目前的限制
+
+【方案】
+颜色：底 #FFFFFF / 面板 #F7F7F8 / 文字 #17171A / 次要 #5E5F66 / 细环 rgba(0,0,0,.08) / 链接 #2457D6
+      锁的语义色（只在锁相关的图表里出现）：挡读写 #E5484D / 只挡写 #D99A2B / 不挡 #3E9B57
+      终端一段整块深色 #15161A
+字体：Inter Tight（界面）+ JetBrains Mono（只用于 SQL、命令、终端）
+主角（第四版）：首屏是一整块"锁表警报"：红色底，锁住的秒数和排队的请求一起往上涨；切换到 tern 改写后，底色变成平静的绿色、队列清空。
+      颜色来自锁本身的语义（挡住读写 = 红，不挡 = 绿），不是装饰；同时有文字说明，不只靠颜色。
+      超大数字"41 秒"是这个页面最重要的信息，所以可以大
+字体（第四版）：IBM Plex Sans + IBM Plex Mono，工程文档的气质，和数据库手册放在一起不违和
+【占位清单】
+- 未接通：安装命令可复制；文档、GitHub、更新日志链接为占位
+- 示例内容：tern 项目、表名、行数、每秒请求量都是虚构的，页脚已注明
+自检：没有 $ logo、状态点、## 标签；没有三列功能卡；终端用整块深色区承托，不是全站深色
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #FFFFFF; --panel: #F7F7F8; --text: #17171A; --text-2: #5E5F66; --text-3: #8E9098;
+    --line: rgba(0,0,0,.08); --ring: 0 0 0 1px rgba(0,0,0,.08);
+    --shadow: 0 0 0 1px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.03), 0 16px 40px rgba(0,0,0,.06);
+    --link: #2457D6;
+    --block: #E5484D; --write: #D99A2B; --free: #3E9B57;
+    --block-bg: #FDECEC; --block-ink: #B4232A; --write-bg: #FBF1DD; --write-ink: #8A5A00; --free-bg: #E8F5EC; --free-ink: #1F7A35;
+    --dark: #15161A; --dark-2: #1D1F24; --dark-text: #E6E7EA; --dark-dim: #8B8F99;
+    --wght: 400;
+    --sans: "IBM Plex Sans", "Noto Sans SC", -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #111214; --panel: #18191C; --text: #EDEEF0; --text-2: #A0A3AB; --text-3: #6E717A;
+      --line: rgba(255,255,255,.09); --ring: 0 0 0 1px rgba(255,255,255,.09); --shadow: 0 0 0 1px rgba(255,255,255,.09);
+      --link: #7DA2FF;
+      --block: #F06A6E; --write: #E5B04F; --free: #5DBB76;
+      --block-bg: rgba(240,106,110,.15); --block-ink: #FF9A9D; --write-bg: rgba(229,176,79,.15); --write-ink: #F0C46A; --free-bg: rgba(93,187,118,.15); --free-ink: #86D69A;
+      --dark: #0B0C0E; --dark-2: #141518;
+      --wght: 360;
+    }
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scrollbar-color: var(--text-3) transparent; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: var(--wght) 16px/1.65 var(--sans); -webkit-font-smoothing: antialiased; }
+  ::selection { background: #C9D7FF; color: #0B1B4A; }
+  input, button { caret-color: var(--link); }
+  a { color: var(--link); text-decoration: none; text-underline-offset: 3px; }
+  a:hover { text-decoration: underline; }
+  :focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 6px; }
+  h1, h2, h3 { text-wrap: balance; }
+  p { text-wrap: pretty; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  code, pre, .mono { font-family: var(--mono); }
+  .num { font-variant-numeric: tabular-nums; }
+
+  header .wrap { height: 64px; display: flex; align-items: center; justify-content: space-between; }
+  .brand { color: var(--text); font-weight: 600; font-size: 19px; letter-spacing: -0.02em; }
+  .brand:hover { text-decoration: none; }
+  header nav { display: flex; gap: 2px; align-items: center; font-size: 15px; }
+  header nav a { color: var(--text-2); padding: 8px 12px; border-radius: 8px; }
+  header nav a:hover { color: var(--text); background: var(--panel); text-decoration: none; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; height: 42px; padding: 0 18px; border-radius: 9px; font: 500 15px/1 var(--sans); background: var(--text); color: var(--bg); border: 0; cursor: pointer; transition: opacity .12s ease-out, transform .1s ease-out; }
+  .btn:hover { opacity: .86; text-decoration: none; }
+  .btn:active { transform: scale(.96); }
+  .btn.ghost { background: var(--bg); color: var(--text); box-shadow: var(--ring); }
+  .btn.ghost:hover { background: var(--panel); opacity: 1; }
+
+  /* 顶栏与警报连成一块 */
+  body > header { background: #B42318; color: #FFFFFF; transition: background-color .4s ease-out; }
+  body:has(.alarm[data-state="after"]) > header { background: #136C3E; }
+  @media (prefers-color-scheme: dark) { body > header { background: #7F1A12; } body:has(.alarm[data-state="after"]) > header { background: #0E4F2E; } }
+  body > header .brand { color: #FFFFFF; }
+  body > header nav a { color: rgba(255,255,255,.82); }
+  body > header nav a:hover { color: #FFFFFF; background: rgba(0,0,0,.16); }
+  body > header :focus-visible { outline-color: #FFFFFF; }
+  /* 锁表警报 */
+  .alarm { --field: #B42318; --field-2: #8F1C13; background: var(--field); color: #FFFFFF; transition: background-color .4s ease-out; }
+  .alarm[data-state="after"] { --field: #136C3E; --field-2: #0E5530; }
+  @media (prefers-color-scheme: dark) { .alarm { --field: #7F1A12; --field-2: #64140E; } .alarm[data-state="after"] { --field: #0E4F2E; --field-2: #0A3D23; } }
+  .alarm ::selection { background: #FFFFFF; color: #8F1C13; }
+  .alarm .wrap { padding-top: 56px; padding-bottom: 64px; }
+  .alarm-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 32px; flex-wrap: wrap; }
+  .alarm h1 { font-size: clamp(32px, 4.6vw, 58px); line-height: 1.1; font-weight: 700; letter-spacing: -0.03em; margin: 0; max-width: 15em; }
+  .alarm h1 .ph { display: inline-block; }
+  .a-switch { display: inline-flex; background: rgba(0,0,0,.22); border-radius: 12px; padding: 4px; gap: 4px; flex: none; }
+  .a-switch button { height: 40px; padding: 0 18px; border-radius: 9px; border: 0; background: transparent; color: rgba(255,255,255,.82); font: 600 15px var(--sans); cursor: pointer; }
+  .a-switch button[aria-pressed="true"] { background: #FFFFFF; color: var(--field-2); }
+  .a-switch button:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 2px; }
+  .gauge { display: grid; grid-template-columns: auto auto 1fr; gap: 56px; margin: 48px 0 24px; align-items: end; }
+  .gauge .label { font-size: 15px; color: rgba(255,255,255,.8); margin-bottom: 4px; }
+  .gauge .big { font-size: clamp(64px, 9vw, 128px); line-height: .9; font-weight: 700; letter-spacing: -0.05em; }
+  .gauge .big small { font-size: .32em; letter-spacing: 0; margin-left: 6px; font-weight: 600; }
+  .gauge .mid { font-size: clamp(40px, 5vw, 64px); line-height: .95; font-weight: 700; letter-spacing: -0.04em; }
+  .gauge .msg { font-size: 20px; line-height: 1.45; font-weight: 600; max-width: 16em; }
+  .queue { display: grid; grid-template-columns: repeat(48, 1fr); gap: 3px; margin-top: 8px; }
+  .queue i { aspect-ratio: 1; border-radius: 2px; background: rgba(255,255,255,.16); }
+  .queue i.on { background: rgba(255,255,255,.92); }
+  .q-cap { font-size: 14px; color: rgba(255,255,255,.78); margin: 12px 0 0; }
+  .alarm-foot { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-top: 40px; padding-top: 28px; border-top: 1px solid rgba(255,255,255,.22); flex-wrap: wrap; }
+  .alarm-foot p { margin: 0; font-size: 17px; max-width: 36em; color: rgba(255,255,255,.9); }
+  .alarm .install { background: rgba(0,0,0,.22); box-shadow: none; color: #FFFFFF; }
+  .alarm .install button { background: rgba(255,255,255,.14); color: #FFFFFF; box-shadow: none; }
+  .alarm .install button:hover { background: rgba(255,255,255,.24); }
+  .alarm .btn.ghost { background: #FFFFFF; color: var(--field-2); box-shadow: none; }
+
+  /* 首屏 */
+  .hero { padding-top: 96px; padding-bottom: 112px; }
+  .hero-top { display: grid; grid-template-columns: 1fr; gap: 28px; margin-bottom: 48px; }
+  .hero .side { display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: end; }
+  .hero .side p { max-width: 34em; margin: 0 !important; }
+  .hero h2 { margin: 0; }
+  h1 .ph, h2 .ph { display: inline-block; }
+  .hero .side p { color: var(--text-2); font-size: 18px; margin: 0 0 24px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .install { display: inline-flex; align-items: center; gap: 10px; height: 42px; padding: 0 5px 0 14px; border-radius: 9px; box-shadow: var(--ring); background: var(--panel); font-family: var(--mono); font-size: 13.5px; max-width: 100%; min-width: 0; }
+  .install code { white-space: nowrap; overflow-x: auto; min-width: 0; }
+  .install button { height: 32px; padding: 0 10px; border-radius: 6px; border: 0; background: var(--bg); box-shadow: var(--ring); color: var(--text-2); font: 500 13px/1 var(--sans); cursor: pointer; flex: none; }
+  .install button:hover { color: var(--text); }
+
+  /* 锁时间线 */
+  .lockviz { border-radius: 16px; box-shadow: var(--shadow); background: var(--bg); overflow: hidden; }
+  .lv-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 16px 14px 20px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .lv-head .file { font-family: var(--mono); font-size: 13px; color: var(--text-2); }
+  .switch { display: inline-flex; background: var(--panel); border-radius: 10px; padding: 3px; gap: 3px; }
+  .switch button { height: 32px; padding: 0 14px; border-radius: 7px; border: 0; background: transparent; color: var(--text-2); font: 500 14px var(--sans); cursor: pointer; transition: background-color .12s, color .12s; }
+  .switch button[aria-pressed="true"] { background: var(--bg); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 0 0 1px rgba(0,0,0,.04); }
+  .lv-body { padding: 20px 20px 8px; }
+  .lane { display: grid; grid-template-columns: minmax(0, 360px) 1fr; gap: 20px; align-items: center; min-height: 44px; }
+  .lane + .lane { border-top: 1px dashed var(--line); }
+  .stmt { font-family: var(--mono); font-size: 12.5px; color: var(--text); line-height: 1.45; padding: 8px 0; }
+  .stmt small { display: block; font-family: var(--sans); font-size: 12px; color: var(--text-2); margin-top: 2px; }
+  .track { position: relative; height: 26px; }
+  .bar { position: absolute; top: 3px; height: 20px; border-radius: 5px; min-width: 3px; transition: left .35s cubic-bezier(.2,0,0,1), width .35s cubic-bezier(.2,0,0,1); }
+  .bar.block { background: var(--block); } .bar.write { background: var(--write); } .bar.free { background: var(--free); opacity: .85; }
+  .bar span.in { left: 10px !important; right: auto !important; color: #FFFFFF; font-weight: 500; }
+  .bar span { position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(-50%); font-size: 12px; color: var(--text-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .axis { display: grid; grid-template-columns: minmax(0, 360px) 1fr; gap: 20px; padding: 6px 0 0; }
+  .ticks { position: relative; height: 22px; font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .ticks span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+  .ticks span:last-child { transform: translateX(-100%); }
+  .ticks span:first-child { transform: none; }
+  .lv-foot { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); }
+  .lv-foot div { padding: 16px 20px; }
+  .lv-foot div + div { border-left: 1px solid var(--line); }
+  .lv-foot dt { font-size: 13px; color: var(--text-2); }
+  .lv-foot dd { margin: 2px 0 0; font-size: 26px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .lv-foot dd.bad { color: var(--block); }
+  .lv-foot dd.good { color: var(--free); }
+  .key { display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; color: var(--text-2); padding: 0 20px 16px; }
+  .key i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+  section { padding: 112px 0; }
+  .sec-title { display: grid; grid-template-columns: 1.25fr 0.75fr; gap: 48px; align-items: end; margin-bottom: 40px; }
+  h2 { font-size: clamp(30px, 3.6vw, 44px); line-height: 1.15; font-weight: 600; letter-spacing: -0.03em; margin: 0; }
+  .sec-title p { margin: 0; color: var(--text-2); font-size: 17px; }
+
+  /* 终端：整块深色 */
+  .dark { background: var(--dark); color: var(--dark-text); }
+  .dark h2 { color: #FFFFFF; }
+  .dark .sec-title p { color: var(--dark-dim); }
+  .term { border-radius: 14px; background: var(--dark-2); box-shadow: 0 0 0 1px rgba(255,255,255,.07); overflow: hidden; }
+  .term .bar-top { height: 40px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid rgba(255,255,255,.06); color: var(--dark-dim); font-size: 12px; }
+  .term .bar-top button { background: none; border: 0; color: var(--dark-dim); font: 12px var(--sans); cursor: pointer; padding: 6px 8px; border-radius: 6px; }
+  .term .bar-top button:hover { color: var(--dark-text); background: rgba(255,255,255,.06); }
+  .term pre { margin: 0; padding: 20px 24px 28px; font: 13.5px/1.75 var(--mono); white-space: pre-wrap; word-break: break-word; min-height: 470px; }
+  .p { color: var(--dark-dim); } .r { color: #FF8A8E; } .g { color: #7FD08F; } .y { color: #F0C46A; } .d { color: var(--dark-dim); }
+  .cursor { display: inline-block; width: 8px; height: 16px; background: var(--dark-text); vertical-align: -3px; animation: blink 1.1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .dark ::selection { background: #3B4A7A; color: #FFFFFF; }
+
+  /* PR 报告 */
+  .report { border-radius: 14px; box-shadow: var(--shadow); background: var(--bg); overflow: hidden; }
+  .report-head { display: flex; align-items: center; gap: 12px; padding: 16px 20px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .report-head b { font-weight: 600; }
+  .report-head .meta { color: var(--text-2); font-size: 14px; }
+  .badge { display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border-radius: 999px; font-size: 13px; font-weight: 500; white-space: nowrap; }
+  .badge.block { background: var(--block-bg); color: var(--block-ink); }
+  .badge.write { background: var(--write-bg); color: var(--write-ink); }
+  .badge.free { background: var(--free-bg); color: var(--free-ink); }
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; font-weight: 500; color: var(--text-2); padding: 12px 20px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { padding: 14px 20px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td:last-child { white-space: nowrap; }
+  .file { font-family: var(--mono); font-size: 13px; }
+  .stmt2 { color: var(--text-2); font-family: var(--mono); font-size: 12.5px; margin-top: 2px; }
+  .fix { padding: 16px 20px 20px; border-top: 1px solid var(--line); }
+  .fix p { margin: 0 0 10px; font-size: 14px; }
+  .fix p code { background: var(--panel); padding: 1px 6px; border-radius: 4px; font-size: 13px; }
+  .fix pre { margin: 0; padding: 14px 16px; border-radius: 8px; background: var(--panel); font: 12.5px/1.7 var(--mono); overflow-x: auto; color: var(--text); }
+  .fix .c { color: var(--text-3); }
+
+  /* 锁对照表 */
+  .locks { min-width: 640px; }
+  .locks td:first-child { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+  .locks td.ex { color: var(--text-2); font-family: var(--mono); font-size: 12.5px; }
+  .yes, .no { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; white-space: nowrap; }
+  .yes::before, .no::before { content: ""; width: 8px; height: 8px; border-radius: 50%; }
+  .yes { color: var(--block-ink); } .yes::before { background: var(--block); }
+  .no { color: var(--text-2); } .no::before { background: transparent; box-shadow: inset 0 0 0 1.5px var(--text-3); }
+  .locks tr.hot { background: var(--block-bg); }
+  .note-s { font-size: 13px; color: var(--text-2); margin: 14px 0 0; }
+
+  /* 接入 */
+  .steps { list-style: none; margin: 0; padding: 0; counter-reset: s; display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .steps li { counter-increment: s; border-radius: 14px; box-shadow: var(--ring); padding: 20px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .steps li::before { content: counter(s); width: 28px; height: 28px; border-radius: 50%; background: var(--panel); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: var(--text-2); }
+  .steps p { margin: 0; }
+  .steps pre { margin: auto 0 0; padding: 12px 14px; border-radius: 8px; background: var(--panel); font: 12.5px/1.7 var(--mono); overflow-x: auto; }
+  .steps .d { color: var(--text-3); }
+  .limits { margin-top: 20px; padding: 18px 22px; border-radius: 14px; background: var(--panel); font-size: 15px; color: var(--text-2); }
+  .limits b { color: var(--text); font-weight: 500; }
+
+  footer { padding: 0 0 56px; font-size: 14px; color: var(--text-2); }
+  footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 24px; }
+  footer nav { display: flex; gap: 20px; }
+  footer a { color: var(--text-2); }
+
+  @media (max-width: 900px) {
+    .hero-top, .sec-title, .hero .side { grid-template-columns: 1fr; gap: 20px; }
+    .lane, .axis { grid-template-columns: 1fr; gap: 0; }
+    .axis > div:first-child { display: none; }
+    .stmt { padding: 10px 0 4px; }
+    .lv-foot { grid-template-columns: 1fr; }
+    .lv-foot div + div { border-left: 0; border-top: 1px solid var(--line); }
+    .steps { grid-template-columns: 1fr; }
+    section { padding: 72px 0; }
+    .hero { padding-top: 64px; padding-bottom: 72px; }
+    .gauge { grid-template-columns: 1fr 1fr; gap: 24px 32px; }
+    .gauge .g3 { grid-column: 1 / -1; }
+    .queue { grid-template-columns: repeat(24, 1fr); }
+    .alarm .wrap { padding-top: 36px; padding-bottom: 48px; }
+    header nav a.hide-sm { display: none; }
+    .term pre { font-size: 12px; padding: 16px; min-height: 540px; }
+    th, td { padding: 12px 14px; }
+  }
+  @media (max-width: 420px) { .wrap { padding-left: 16px; padding-right: 16px; } .lv-body { padding: 12px 14px 4px; } .lv-head { padding: 12px 14px; } }
+  @media (prefers-reduced-motion: reduce) { .cursor { animation: none; } *, *::before, *::after { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <a class="brand" href="#">tern</a>
+    <nav aria-label="主导航">
+      <a href="#report" class="hide-sm">检查报告</a>
+      <a href="#locks" class="hide-sm">锁的对照表</a>
+      <a href="#start" class="hide-sm">快速开始</a>
+      <a href="#">文档</a>
+      <a href="#">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="alarm" id="alarm" data-state="before" aria-labelledby="alarm-title">
+    <div class="wrap">
+      <div class="alarm-top">
+        <h1 id="alarm-title"><span class="ph">给 821 万行的表加一列，</span><span class="ph" id="h-tail">所有请求排队 41 秒。</span></h1>
+        <div class="a-switch" role="group" aria-label="切换迁移版本">
+          <button type="button" data-v="before" aria-pressed="true">原迁移</button>
+          <button type="button" data-v="after" aria-pressed="false">tern 改写后</button>
+        </div>
+      </div>
+      <div class="gauge" aria-live="polite">
+        <div class="g1"><div class="label">orders 表被锁住</div><div class="big num"><span id="g-sec">41.0</span><small>秒</small></div></div>
+        <div class="g2"><div class="label">排队等待的请求</div><div class="mid num" id="g-q">2,870</div></div>
+        <div class="g3"><div class="label">用户看到的</div><div class="msg" id="g-msg">下单接口超时，支付回调失败，客服电话开始响</div></div>
+      </div>
+      <div class="queue" id="queue" aria-hidden="true"></div>
+      <p class="q-cap">每个方块代表 10 个被挡住的请求，按 orders 表每秒约 70 次读写估算。</p>
+      <div class="alarm-foot">
+        <p>tern 在迁移执行前算出每条语句会拿什么锁、挡住多久，并给出不锁表的改写方案。开源，支持 PostgreSQL 12 到 17。</p>
+        <div class="row">
+          <div class="install"><code id="cmd">brew install tern-db/tap/tern</code><button type="button" id="copy">复制</button></div>
+          <a class="btn ghost" href="#start">快速开始</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap hero">
+    <div class="sec-title">
+      <h2><span class="ph">同一个迁移，</span><span class="ph">拆开看每一步拿的锁</span></h2>
+      <p>原迁移只有一条语句，却要重写整张表。tern 把它改写成六步，每一步拿锁的时间都在 1 秒以内。</p>
+    </div>
+    <div class="lockviz" aria-label="锁时间线">
+      <div class="lv-head">
+        <span class="file">0042_add_public_id.sql 在 orders 表上的锁时间线</span>
+        <div class="switch" role="group" aria-label="切换迁移版本">
+          <button type="button" data-v="before" aria-pressed="true">原迁移</button>
+          <button type="button" data-v="after" aria-pressed="false">tern 改写后</button>
+        </div>
+      </div>
+      <div class="lv-body" id="lanes"></div>
+      <div class="lv-body" style="padding-top:0"><div class="axis"><div></div><div class="ticks num" id="ticks"></div></div></div>
+      <div class="key"><span><i style="background:var(--block)"></i>挡住读和写</span><span><i style="background:var(--write)"></i>只挡写</span><span><i style="background:var(--free)"></i>不挡读写</span></div>
+      <dl class="lv-foot num">
+        <div><dt>用户请求被挡住的时间</dt><dd id="m-block" class="bad">41 秒</dd></div>
+        <div><dt>迁移总耗时</dt><dd id="m-total">53 秒</dd></div>
+        <div><dt>超过 2 秒上限的语句</dt><dd id="m-over" class="bad">1 条</dd></div>
+      </dl>
+    </div>
+  </div>
+
+  <section class="dark">
+    <div class="wrap">
+      <div class="sec-title">
+        <h2><span class="ph">在终端里，</span><span class="ph">它是这样告诉你的</span></h2>
+        <p>连一个只读副本就能运行，不碰生产数据。超过 <code>--max-lock</code> 上限时退出码为 1，CI 会直接失败。</p>
+      </div>
+      <div class="term">
+        <div class="bar-top"><span>~/shop-api</span><button type="button" id="replay">重新播放</button></div>
+        <pre id="screen" aria-label="tern plan 运行示例"></pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="report">
+    <div class="wrap">
+      <div class="sec-title">
+        <h2><span class="ph">合并之前，</span><span class="ph">它会在 Pull Request 里拦住你</span></h2>
+        <p>代码审查能看出 SQL 写得对不对，但很难看出它在一张大表上会锁多久。这一部分交给 tern。</p>
+      </div>
+      <div class="report">
+        <div class="report-head">
+          <b>tern plan</b><span class="badge block">1 个问题超过上限</span>
+          <span class="meta">基于 replica:5432/shop，2 个待执行迁移，用时 4.2 秒</span>
+        </div>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>迁移文件</th><th>锁</th><th class="n">影响行数</th><th class="n">挡住读写</th><th>结果</th></tr></thead>
+            <tbody>
+              <tr><td><div class="file">0041_index_sku.sql</div><div class="stmt2">CREATE INDEX CONCURRENTLY idx_sku ON products (sku)</div></td><td><span class="badge free">SHARE UPDATE EXCLUSIVE</span></td><td class="n">1,204,880</td><td class="n">0 秒</td><td>通过</td></tr>
+              <tr><td><div class="file">0042_add_public_id.sql</div><div class="stmt2">ALTER TABLE orders ADD COLUMN public_id uuid NOT NULL DEFAULT gen_random_uuid()</div></td><td><span class="badge block">ACCESS EXCLUSIVE</span></td><td class="n">8,214,330</td><td class="n">约 41 秒</td><td>超过 2 秒</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="fix">
+          <p>默认值 <code>gen_random_uuid()</code> 每行都不一样，PostgreSQL 必须重写整张表。建议把 <code>0042_add_public_id.sql</code> 改写成下面六步，运行 <code>tern fix 0042</code> 可以直接生成：</p>
+<pre>ALTER TABLE orders ADD COLUMN public_id uuid;                          <span class="c">-- 只改表结构，约 20 毫秒</span>
+ALTER TABLE orders ALTER COLUMN public_id SET DEFAULT gen_random_uuid(); <span class="c">-- 新写入的行自动有值</span>
+UPDATE orders SET public_id = gen_random_uuid()
+  WHERE id BETWEEN $1 AND $2 AND public_id IS NULL;                    <span class="c">-- 每批 1 万行，共 822 批，不挡读写</span>
+ALTER TABLE orders ADD CONSTRAINT public_id_nn
+  CHECK (public_id IS NOT NULL) NOT VALID;                             <span class="c">-- 不扫表，约 10 毫秒</span>
+ALTER TABLE orders VALIDATE CONSTRAINT public_id_nn;                   <span class="c">-- 扫全表，但不挡读写</span>
+ALTER TABLE orders ALTER COLUMN public_id SET NOT NULL;                <span class="c">-- PostgreSQL 12+ 借上一步的约束跳过扫描</span></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="locks" style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-title">
+        <h2><span class="ph">PostgreSQL 有 8 种表锁，</span><span class="ph">只有一部分会挡住你的用户</span></h2>
+        <p>tern 做的第一件事，就是给每条语句标上它会拿的锁。下面这张表可以随手查。</p>
+      </div>
+      <div class="report">
+        <div class="scroll">
+          <table class="locks">
+            <thead><tr><th>锁</th><th>常见语句</th><th>挡住读</th><th>挡住写</th></tr></thead>
+            <tbody>
+              <tr><td>ACCESS SHARE</td><td class="ex">SELECT</td><td><span class="no">不挡</span></td><td><span class="no">不挡</span></td></tr>
+              <tr><td>ROW SHARE</td><td class="ex">SELECT … FOR UPDATE</td><td><span class="no">不挡</span></td><td><span class="no">不挡</span></td></tr>
+              <tr><td>ROW EXCLUSIVE</td><td class="ex">INSERT、UPDATE、DELETE</td><td><span class="no">不挡</span></td><td><span class="no">不挡</span></td></tr>
+              <tr><td>SHARE UPDATE EXCLUSIVE</td><td class="ex">CREATE INDEX CONCURRENTLY、VALIDATE CONSTRAINT、VACUUM</td><td><span class="no">不挡</span></td><td><span class="no">不挡</span></td></tr>
+              <tr><td>SHARE</td><td class="ex">CREATE INDEX（不加 CONCURRENTLY）</td><td><span class="no">不挡</span></td><td><span class="yes">挡</span></td></tr>
+              <tr><td>SHARE ROW EXCLUSIVE</td><td class="ex">CREATE TRIGGER、部分 ADD FOREIGN KEY</td><td><span class="no">不挡</span></td><td><span class="yes">挡</span></td></tr>
+              <tr><td>EXCLUSIVE</td><td class="ex">REFRESH MATERIALIZED VIEW CONCURRENTLY</td><td><span class="no">不挡</span></td><td><span class="yes">挡</span></td></tr>
+              <tr class="hot"><td>ACCESS EXCLUSIVE</td><td class="ex">大多数 ALTER TABLE、DROP、TRUNCATE、VACUUM FULL</td><td><span class="yes">挡</span></td><td><span class="yes">挡</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p class="note-s">"挡住读写"指挡住普通的 SELECT 和 INSERT / UPDATE / DELETE。锁本身拿得快不快，还取决于表上有没有长事务，tern 会一起检查。</p>
+    </div>
+  </section>
+
+  <section id="start" style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-title">
+        <h2><span class="ph">接入现有项目，</span><span class="ph">不改任何迁移文件</span></h2>
+        <p>支持 Flyway、golang-migrate、Prisma 和 Rails 生成的 SQL。</p>
+      </div>
+      <ol class="steps">
+        <li><p>安装（macOS / Linux），或者用 Docker 镜像</p><pre>brew install tern-db/tap/tern
+docker run --rm ghcr.io/tern-db/tern:0.9 --help</pre></li>
+        <li><p>在项目根目录生成配置，指定迁移文件的位置</p><pre>tern init --migrations ./db/migrations</pre></li>
+        <li><p>连接一个只读副本，跑第一次分析</p><pre>export TERN_DSN="postgres://readonly@replica:5432/shop"
+tern plan</pre></li>
+        <li><p>加进 CI，超过上限就阻止合并</p><pre><span class="d"># .github/workflows/migrate.yml</span>
+- run: tern plan --max-lock 2s --format github</pre></li>
+      </ol>
+      <div class="limits"><b>目前还不支持：</b>MySQL 和 SQLite（MySQL 在计划中），存储过程内部的 DDL，Windows 原生运行（可以用 WSL 或 Docker）。</div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>tern，MIT 许可证。名字来自北极燕鸥，每年迁徙约七万公里。示例网站，项目为虚构。</span>
+    <nav aria-label="页脚"><a href="#">文档</a><a href="#">更新日志</a><a href="#">GitHub</a></nav>
+  </div>
+</footer>
+
+<script>
+(function () {
+  /* 复制安装命令 */
+  var copy = document.getElementById('copy');
+  copy.addEventListener('click', function () {
+    var done = function () { copy.textContent = '已复制'; setTimeout(function () { copy.textContent = '复制'; }, 1600); };
+    try { navigator.clipboard.writeText(document.getElementById('cmd').textContent).then(done, done); } catch (e) { done(); }
+  });
+
+  /* 锁时间线。时间单位：秒 */
+  var MAX = 60;
+  var data = {
+    before: [
+      { sql: 'CREATE INDEX CONCURRENTLY idx_sku', note: '0041，SHARE UPDATE EXCLUSIVE', t: 0, d: 12, k: 'free', label: '12 秒' },
+      { sql: 'ADD COLUMN public_id uuid NOT NULL DEFAULT gen_random_uuid()', note: '0042，ACCESS EXCLUSIVE，重写整张表', t: 12, d: 41, k: 'block', label: '41 秒，期间所有请求排队' }
+    ],
+    after: [
+      { sql: 'CREATE INDEX CONCURRENTLY idx_sku', note: '0041，SHARE UPDATE EXCLUSIVE', t: 0, d: 12, k: 'free', label: '12 秒' },
+      { sql: 'ADD COLUMN public_id uuid', note: 'ACCESS EXCLUSIVE，只改表结构', t: 12, d: 0.02, k: 'block', label: '0.02 秒' },
+      { sql: 'SET DEFAULT gen_random_uuid()', note: 'ACCESS EXCLUSIVE，只影响新写入的行', t: 12.05, d: 0.01, k: 'block', label: '0.01 秒' },
+      { sql: 'UPDATE … SET public_id（822 批）', note: 'ROW EXCLUSIVE，按批回填', t: 12.1, d: 38, k: 'free', label: '38 秒，不挡读写' },
+      { sql: 'ADD CONSTRAINT … NOT VALID', note: 'ACCESS EXCLUSIVE，不扫表', t: 50.2, d: 0.01, k: 'block', label: '0.01 秒' },
+      { sql: 'VALIDATE CONSTRAINT public_id_nn', note: 'SHARE UPDATE EXCLUSIVE，扫全表', t: 50.3, d: 6.5, k: 'free', label: '6.5 秒' },
+      { sql: 'ALTER COLUMN public_id SET NOT NULL', note: 'ACCESS EXCLUSIVE，借已验证的约束跳过扫描', t: 56.9, d: 0.01, k: 'block', label: '0.01 秒' }
+    ]
+  };
+  var metrics = { before: ['41 秒', '53 秒', '1 条', 'bad', 'bad'], after: ['0.05 秒', '57 秒', '0 条', 'good', 'good'] };
+  var lanes = document.getElementById('lanes'), ticks = document.getElementById('ticks');
+  [0, 10, 20, 30, 40, 50, 60].forEach(function (s) { var e = document.createElement('span'); e.style.left = (s / MAX * 100) + '%'; e.textContent = s + ' 秒'; ticks.appendChild(e); });
+  function pct(x) { return (x / MAX * 100) + '%'; }
+  function render(v) {
+    lanes.innerHTML = '';
+    data[v].forEach(function (r) {
+      var lane = document.createElement('div'); lane.className = 'lane';
+      lane.innerHTML = '<div class="stmt"></div><div class="track"><div class="bar ' + r.k + '"><span></span></div></div>';
+      lane.querySelector('.stmt').innerHTML = r.sql.replace(/</g, '&lt;') + '<small>' + r.note + '</small>';
+      var bar = lane.querySelector('.bar'); bar.style.left = pct(r.t); bar.style.width = '0%';
+      bar.querySelector('span').textContent = r.label;
+      if (r.d / MAX > 0.3) { bar.querySelector('span').className = 'in'; } else if (r.t / MAX > 0.6) { var sp = bar.querySelector('span'); sp.style.left = 'auto'; sp.style.right = 'calc(100% + 8px)'; }
+      lanes.appendChild(lane);
+      requestAnimationFrame(function () { requestAnimationFrame(function () { bar.style.width = pct(r.d); }); });
+    });
+    var m = metrics[v];
+    document.getElementById('m-block').textContent = m[0]; document.getElementById('m-block').className = m[3];
+    document.getElementById('m-total').textContent = m[1];
+    document.getElementById('m-over').textContent = m[2]; document.getElementById('m-over').className = m[4];
+  }
+  /* 警报：锁住的秒数和排队请求 */
+  var alarm = document.getElementById('alarm'), gSec = document.getElementById('g-sec'), gQ = document.getElementById('g-q'), gMsg = document.getElementById('g-msg'), hTail = document.getElementById('h-tail'), qEl = document.getElementById('queue');
+  var CELLS = 288, cells = [];
+  for (var ci = 0; ci < CELLS; ci++) { var c = document.createElement('i'); qEl.appendChild(c); cells.push(c); }
+  var reduceA = matchMedia('(prefers-reduced-motion: reduce)').matches, raf = null;
+  var STATES = {
+    before: { sec: 41, q: 2870, msg: '下单接口超时，支付回调失败，客服电话开始响', tail: '所有请求排队 41 秒。' },
+    after: { sec: 0.05, q: 4, msg: '用户感觉不到。最长一次锁 0.02 秒', tail: '用 tern 改写后，排队 0.05 秒。' }
+  };
+  function paint(sec, q) {
+    gSec.textContent = sec < 1 ? sec.toFixed(2) : sec.toFixed(1);
+    gQ.textContent = Math.round(q).toLocaleString('en-US');
+    var n = Math.round(q / 10); for (var i = 0; i < CELLS; i++) cells[i].classList.toggle('on', i < n);
+  }
+  function runAlarm(v) {
+    var st = STATES[v]; alarm.dataset.state = v; gMsg.textContent = st.msg; hTail.textContent = st.tail;
+    cancelAnimationFrame(raf);
+    if (reduceA || v === 'after') { paint(st.sec, st.q); return; }
+    var t0 = null, dur = 4100;
+    (function frame(ts) { if (!t0) t0 = ts; var p = Math.min(1, (ts - t0) / dur); paint(st.sec * p, st.q * p); if (p < 1) raf = requestAnimationFrame(frame); })(performance.now());
+  }
+  var asw = document.querySelectorAll('.a-switch button');
+  function setVersion(v, fromAlarm) {
+    asw.forEach(function (x) { x.setAttribute('aria-pressed', String(x.dataset.v === v)); });
+    document.querySelectorAll('.switch button').forEach(function (x) { x.setAttribute('aria-pressed', String(x.dataset.v === v)); });
+    render(v); runAlarm(v);
+  }
+  asw.forEach(function (b) { b.addEventListener('click', function () { setVersion(b.dataset.v); }); });
+  var sw = document.querySelectorAll('.switch button');
+  sw.forEach(function (b) { b.addEventListener('click', function () { setVersion(b.dataset.v); }); });
+  render('before'); paint(41, 2870);
+  setTimeout(function () { runAlarm('before'); }, 300);
+
+  /* 终端演示：进入视口时播放一次 */
+  var screen = document.getElementById('screen');
+  var P = '<span class="p">~/shop-api %</span> ';
+  var script = [
+    ['cmd', 'tern plan --max-lock 2s'],
+    ['out', '<span class="d">读取 db/migrations，找到 2 个待执行迁移</span>', 450],
+    ['out', '<span class="d">连接 replica:5432/shop，读取表统计信息</span>', 600],
+    ['out', '', 150],
+    ['out', '<span class="g">通过</span>  0041_index_sku.sql', 250],
+    ['out', '      CREATE INDEX CONCURRENTLY idx_sku ON products (sku);', 120],
+    ['out', '      <span class="d">SHARE UPDATE EXCLUSIVE，不挡读写，预计 12 秒</span>', 500],
+    ['out', '', 150],
+    ['out', '<span class="r">失败</span>  0042_add_public_id.sql', 250],
+    ['out', '      ALTER TABLE orders ADD COLUMN public_id uuid NOT NULL DEFAULT gen_random_uuid();', 120],
+    ['out', '      <span class="r">ACCESS EXCLUSIVE，默认值不是常量，需要重写 8,214,330 行，预计挡住读写 41 秒</span>', 550],
+    ['out', '', 150],
+    ['out', '<span class="y">建议</span>  拆成六步，每步锁在 1 秒以内', 300],
+    ['out', '      运行 <span class="g">tern fix 0042</span> 生成改写后的迁移文件', 500],
+    ['out', '', 150],
+    ['out', '1 个问题超过上限（2 秒），退出码 1', 300],
+    ['end']
+  ];
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, run = 0, timer;
+  function draw(lines, typing) { screen.innerHTML = lines.join('\n') + (lines.length ? '\n' : '') + P + (typing || '') + '<span class="cursor"></span>'; }
+  function play() {
+    var id = ++run, lines = [], i = 0; clearTimeout(timer);
+    if (reduce) { script.forEach(function (s) { if (s[0] === 'cmd') lines.push(P + s[1]); else if (s[0] === 'out') lines.push(s[1]); }); draw(lines, ''); return; }
+    function step() {
+      if (id !== run || i >= script.length) return;
+      var s = script[i];
+      if (s[0] === 'end') { draw(lines, ''); return; }
+      if (s[0] === 'cmd') {
+        var k = 0;
+        (function type() { if (id !== run) return; draw(lines, s[1].slice(0, k)); if (k++ < s[1].length) timer = setTimeout(type, 55 + Math.random() * 50); else timer = setTimeout(function () { lines.push(P + s[1]); i++; step(); }, 350); })();
+      } else { lines.push(s[1]); i++; screen.innerHTML = lines.join('\n'); timer = setTimeout(step, s[2]); }
+    }
+    draw(lines, ''); timer = setTimeout(step, 400);
+  }
+  document.getElementById('replay').addEventListener('click', play);
+  if ('IntersectionObserver' in window) { var seen = false; new IntersectionObserver(function (es) { if (es[0].isIntersecting && !seen) { seen = true; play(); } }, { threshold: .3 }).observe(screen); } else play();
+})();
+</script>
+</body>
+</html>

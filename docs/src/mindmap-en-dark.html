@@ -1,0 +1,44 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+:root { --bg:transparent; --text:#E6EDF3; --text2:#9198A1; --chip:#161B22; --line:#3D444D; --accent:#86A3F5; --accentbg:#1B2540; --root:#E6EDF3; --rootText:#0D1117; --frame:rgba(240,246,252,.14); --tag:#E6EDF3; --tagText:#0D1117; --tag2:#262C36; --tag2Text:#E6EDF3; }
+* { box-sizing: border-box; }
+html, body { margin:0; background: var(--bg); }
+body { font-family: "Inter", "Noto Sans CJK SC", sans-serif; color: var(--text); -webkit-font-smoothing: antialiased; }
+
+.map { position:relative; width:1000px; padding:24px 24px 16px; }
+svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; }
+svg path { fill:none; stroke:var(--line); stroke-width:1.5; }
+svg path.acc { stroke:var(--accent); stroke-width:2; }
+.root { position:relative; z-index:1; margin:0 auto; width:max-content; background:var(--root); color:var(--rootText); border-radius:16px; padding:18px 32px; text-align:center; }
+.root b { display:block; font-size:30px; letter-spacing:-0.02em; font-weight:650; }
+.root span { font-size:15px; opacity:.78; }
+.cols { position:relative; z-index:1; display:grid; grid-template-columns:1fr 1fr; gap:40px; margin-top:44px; }
+.col { padding-left:28px; }
+.branch { margin-bottom:26px; }
+.bname { display:flex; align-items:baseline; gap:10px; margin-bottom:10px; }
+.bname b { font-size:21px; font-weight:650; letter-spacing:-0.01em; }
+.bname small { font-size:14px; color:var(--text2); }
+.acc .bname b { color:var(--accent); }
+.leaves { display:flex; flex-direction:column; gap:7px; }
+.leaf { background:var(--chip); border-radius:9px; padding:8px 13px; font-size:16px; line-height:1.4; display:flex; gap:10px; flex-wrap:wrap; align-items:baseline; }
+.leaf .k { font-weight:550; white-space:pre; }
+.leaf .n { color:var(--text2); font-size:14.5px; }
+.acc .leaf { background:var(--accentbg); font-weight:600; }
+</style></head><body><div class="map" id="cap"><svg id="w"></svg>
+<div class="root" id="root"><b>Toothpick</b><span>Pick out the AI flavor, avoid common flaws</span></div>
+<div class="cols"><div class="col"><div class="branch acc"><div class="bname"><b>The core test</b></div><div class="leaves"><div class="leaf"><span class="k">Made for this product, or for any product?</span></div></div></div><div class="branch"><div class="bname"><b>AI tells</b><small>40 entries, each says when it is fine</small></div><div class="leaves"><div class="leaf"><span class="k">Old clichés</span><span class="n">gradients, emoji icons, card kits</span></div><div class="leaf"><span class="k">Faking taste</span><span class="n">style costumes, symbols as content</span></div><div class="leaf"><span class="k">Surface habits</span><span class="n">side stripes, hard shadows, stripes</span></div><div class="leaf"><span class="k">Hollowed-out pages</span><span class="n">decoration gone, no substance</span></div><div class="leaf"><span class="k">Fooling developers</span><span class="n">fake features, mock data, dead clicks</span></div></div></div><div class="branch"><div class="bname"><b>References</b><small>a reference, not a template</small></div><div class="leaves"><div class="leaf"><span class="k">Measured products</span><span class="n">Vercel, GitHub, DingTalk, Juejin, +5</span></div><div class="leaf"><span class="k">Official guidelines</span><span class="n">Apple, Material, Carbon, Fluent</span></div><div class="leaf"><span class="k">Craft details</span><span class="n">radius, shadows, browser-native parts</span></div><div class="leaf"><span class="k">READMEs and maps</span><span class="n">first screen, evidence, map rules</span></div></div></div></div><div class="col"><div class="branch"><div class="bname"><b>Seven steps</b><small>sized to the change</small></div><div class="leaves"><div class="leaf"><span class="k">0  Size the change first</span><span class="n">small changes go straight in</span></div><div class="leaf"><span class="k">1  Read the project, judge the mode</span></div><div class="leaf"><span class="k">2  Inventory what is unique</span></div><div class="leaf"><span class="k">3  Write the argument</span><span class="n">one claim per section</span></div><div class="leaf"><span class="k">4  Write a short plan</span></div><div class="leaf"><span class="k">5  Ask: default or choice?</span></div><div class="leaf"><span class="k">6  Build</span><span class="n">real data in product fragments</span></div><div class="leaf"><span class="k">7  Review, remove one thing</span></div></div></div><div class="branch"><div class="bname"><b>Ground rules</b></div><div class="leaves"><div class="leaf"><span class="k">Fake nothing</span><span class="n">logos, data, reviews, facts</span></div><div class="leaf"><span class="k">Fool no developer</span><span class="n">no fake features or clicks</span></div><div class="leaf"><span class="k">Placeholder list on delivery</span></div><div class="leaf"><span class="k">Copy says what it does</span></div><div class="leaf"><span class="k">Restraint is not emptiness</span></div></div></div><div class="branch"><div class="bname"><b>Works with</b></div><div class="leaves"><div class="leaf"><span class="k">Claude</span><span class="n">skills folder</span></div><div class="leaf"><span class="k">Codex</span><span class="n">point AGENTS.md to it</span></div><div class="leaf"><span class="k">DeepSeek</span><span class="n">paste into the system prompt</span></div></div></div></div></div></div>
+<script>
+document.fonts.ready.then(function(){
+ var M=document.getElementById('cap').getBoundingClientRect(), r=document.getElementById('root').getBoundingClientRect(), out='';
+ var rx=r.left+r.width/2-M.left, ry=r.bottom-M.top;
+ document.querySelectorAll('.col').forEach(function(c){
+   var cr=c.getBoundingClientRect(), sx=cr.left-M.left+6, names=c.querySelectorAll('.bname');
+   var first=names[0].getBoundingClientRect(), last=names[names.length-1].getBoundingClientRect();
+   var fy=first.top+first.height/2-M.top, ly=last.top+last.height/2-M.top, my=(ry+fy)/2;
+   out+='<path d="M'+rx+' '+ry+' C'+rx+' '+my+' '+sx+' '+(my-6)+' '+sx+' '+fy+'"/>';
+   out+='<path d="M'+sx+' '+fy+' L'+sx+' '+ly+'"/>';
+   names.forEach(function(n){ var b=n.getBoundingClientRect(), y=b.top+b.height/2-M.top, acc=n.parentNode.classList.contains('acc');
+     out+='<path class="'+(acc?'acc':'')+'" d="M'+sx+' '+y+' L'+(b.left-M.left-8)+' '+y+'"/>'; });
+ });
+ document.getElementById('w').innerHTML=out;
+});
+</script></body></html>
